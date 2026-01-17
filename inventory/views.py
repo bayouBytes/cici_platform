@@ -32,6 +32,8 @@ def add_ingredient(request):
         form = IngredientForm(request.POST)
         if form.is_valid():
             form.save()
+        else:
+            print(form.errors)  # Add this to see why it failed in your console
     return redirect('chef_dashboard')
 
 @staff_member_required

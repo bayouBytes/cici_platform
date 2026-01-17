@@ -10,11 +10,17 @@ class Ingredient(models.Model):
     ]
     
     name = models.CharField(max_length=100)
+    quantity = models.DecimalField(
+        max_digits=10, 
+        decimal_places=2, 
+        default=0, 
+        help_text="Current amount in stock"
+    )
     unit_type = models.CharField(max_length=5, choices=UNIT_CHOICES)
     cost_per_unit = MoneyField(max_digits=14, decimal_places=2, default_currency='USD')
 
     def __str__(self):
-        return f"{self.name} (${self.cost_per_unit}/{self.unit_type})"
+        return f"{self.name} ({self.quantity} {self.unit_type})"
 
 class Recipe(models.Model):
     name = models.CharField(max_length=200)
@@ -42,17 +48,33 @@ class Meal(models.Model):
     """A collection of recipes (e.g. Steak Dinner = Steak + Potatoes + Salad)"""
     name = models.CharField(max_length=200)
     description = models.TextField(blank=True)
+    # 1. ADD THIS FIELD:
+    customer_price = MoneyField(
+        max_digits=14, 
+        decimal_places=2, 
+        default_currency='USD', 
+        null=True, 
+        blank=True,
+        help_text="Price displayed to customers"
+    )
     
     def calculate_cost(self):
         from djmoney.money import Money
         total = Money(0, 'USD')
         for mr in self.meal_recipes.all():
-            # Cost = Recipe Cost * Quantity (e.g. 1 serving)
             total += (mr.recipe.calculate_cost() * mr.quantity)
         return total
 
     def __str__(self):
-        return self.name
+        return f"{self.name} ({self.customer_price})"
+    
+    @property
+    def projected_profit(self):
+        from djmoney.money import Money
+        # Use 0 if no price is set
+        price = self.customer_price if self.customer_price else Money(0, 'USD')
+        cost = self.calculate_cost()
+        return price - cost
 
 class MealRecipe(models.Model):
     """Links a Meal to a Recipe"""

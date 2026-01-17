@@ -34,18 +34,26 @@
             <table class="w-full text-left text-sm">
                 <thead class="bg-gray-50 text-gray-500 uppercase tracking-wider text-xs">
                     <tr>
-                        <th class="px-6 py-3 font-semibold">Name</th>
-                        <th class="px-6 py-3 text-right font-semibold">Cost / Unit</th>
+                        <th class="px-6 py-3 font-semibold text-brand-teal">Name</th>
+                        <th class="px-6 py-3 font-semibold text-brand-teal">In Stock</th>
+                        <th class="px-6 py-3 text-right font-semibold text-brand-teal">Cost / Unit</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-100">
                     {% for ing in ingredients %}
                     <tr class="hover:bg-brand-light/50 transition group">
-                        <td class="px-6 py-3 font-medium text-brand-dark group-hover:text-brand-teal transition-colors">{{ ing.name }}</td>
-                        <td class="px-6 py-3 text-right text-gray-600 font-mono">{{ ing.cost_per_unit }} / {{ ing.unit_type }}</td>
+                        <td class="px-6 py-3 font-medium text-brand-dark group-hover:text-brand-teal transition-colors">
+                            {{ ing.name }}
+                        </td>
+                        <td class="px-6 py-3 font-mono text-gray-700">
+                            {{ ing.quantity }} {{ ing.unit_type }}
+                        </td>
+                        <td class="px-6 py-3 text-right text-gray-600 font-mono">
+                            {{ ing.cost_per_unit }}
+                        </td>
                     </tr>
                     {% empty %}
-                    <tr><td colspan="2" class="px-6 py-8 text-center text-gray-400 italic">Pantry is empty.</td></tr>
+                    <tr><td colspan="3" class="px-6 py-8 text-center text-gray-400 italic">Pantry is empty.</td></tr>
                     {% endfor %}
                 </tbody>
             </table>
@@ -63,9 +71,10 @@
             <table class="w-full text-left text-sm">
                 <thead class="bg-gray-50 text-gray-500 uppercase tracking-wider text-xs">
                     <tr>
-                        <th class="px-6 py-3 font-semibold">Dish</th>
-                        <th class="px-6 py-3 font-semibold">Base Cost</th>
-                        <th class="px-6 py-3 text-right font-semibold">Actions</th>
+                        <th class="px-6 py-3 font-semibold text-brand-teal">Dish</th>
+                        <th class="px-6 py-3 font-semibold text-brand-teal">Base Cost</th>
+                        <th class="px-6 py-3 text-center font-semibold text-brand-teal">Details</th> 
+                        <th class="px-6 py-3 text-right font-semibold text-brand-teal">Actions</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-100">
@@ -73,13 +82,25 @@
                     <tr class="hover:bg-brand-light/50 transition">
                         <td class="px-6 py-3 font-medium text-brand-dark">{{ recipe.name }}</td>
                         <td class="px-6 py-3 text-gray-600 font-mono">{{ recipe.calculate_cost }}</td>
+                        
+                        <td class="px-6 py-3 text-center">
+                            {% if recipe.instructions %}
+                                <button onclick="openInstructionsModal('{{ recipe.name|escapejs }}', '{{ recipe.instructions|escapejs }}')" 
+                                        class="text-xs bg-brand-light text-brand-teal border border-brand-teal px-3 py-1 rounded-full hover:bg-brand-teal hover:text-white transition font-bold">
+                                    View Instructions
+                                </button>
+                            {% else %}
+                                <span class="text-xs text-gray-300 italic">No text</span>
+                            {% endif %}
+                        </td>
+
                         <td class="px-6 py-3 text-right space-x-3">
                             <a href="{% url 'edit_recipe' recipe.id %}" class="text-gray-400 hover:text-brand-teal transition" title="Edit"><i class="fa-solid fa-pen-to-square"></i></a>
                             <a href="{% url 'delete_recipe' recipe.id %}" class="text-gray-400 hover:text-red-500 transition" onclick="return confirm('Delete {{ recipe.name }}?')" title="Delete"><i class="fa-solid fa-trash"></i></a>
                         </td>
                     </tr>
                     {% empty %}
-                    <tr><td colspan="3" class="px-6 py-8 text-center text-gray-400 italic">No recipes created yet.</td></tr>
+                    <tr><td colspan="4" class="px-6 py-8 text-center text-gray-400 italic">No recipes created yet.</td></tr>
                     {% endfor %}
                 </tbody>
             </table>
@@ -97,23 +118,58 @@
         <table class="w-full text-left text-sm">
             <thead class="bg-gray-50 text-gray-500 uppercase tracking-wider text-xs">
                 <tr>
-                    <th class="px-6 py-3 font-semibold">Meal Name</th>
-                    <th class="px-6 py-3 font-semibold">Total Base Cost</th>
-                    <th class="px-6 py-3 text-right font-semibold">Actions</th>
+                    <th class="px-6 py-3 font-semibold text-brand-teal">Meal Name</th>
+                    <th class="px-6 py-3 font-semibold text-brand-teal">Base Cost</th>
+                    <th class="px-6 py-3 font-semibold text-brand-teal">Price</th>
+                    <th class="px-6 py-3 font-semibold text-brand-teal">Profit</th>
+                    <th class="px-6 py-3 text-center font-semibold text-brand-teal">Details</th>
+                    <th class="px-6 py-3 text-center font-semibold text-brand-teal">Actions</th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-gray-100">
                 {% for meal in meals %}
-                <tr class="hover:bg-brand-light/50 transition">
-                    <td class="px-6 py-3 font-medium text-brand-dark">{{ meal.name }}</td>
-                    <td class="px-6 py-3 text-gray-600 font-mono">{{ meal.calculate_cost }}</td>
-                    <td class="px-6 py-3 text-right space-x-3">
-                        <a href="{% url 'edit_meal' meal.id %}" class="text-gray-400 hover:text-brand-teal transition"><i class="fa-solid fa-pen-to-square"></i></a>
-                        <a href="{% url 'delete_meal' meal.id %}" class="text-gray-400 hover:text-red-500 transition" onclick="return confirm('Delete Meal?')"><i class="fa-solid fa-trash"></i></a>
+                <tr class="hover:bg-brand-light/50 transition group">
+                    <td class="px-6 py-4 font-medium text-brand-dark align-middle">{{ meal.name }}</td>
+                    <td class="px-6 py-4 text-gray-600 font-mono align-middle">{{ meal.calculate_cost }}</td>
+                    
+                    <td class="px-6 py-4 font-bold text-brand-dark font-mono align-middle">
+                        {% if meal.customer_price %}
+                            {{ meal.customer_price }}
+                        {% else %}
+                            <span class="text-gray-300 text-xs">--</span>
+                        {% endif %}
+                    </td>
+
+                    <td class="px-6 py-4 font-mono font-bold align-middle">
+                        {% if meal.projected_profit.amount < 0 %}
+                            <span class="text-red-500">
+                                (${{ meal.projected_profit.amount|stringformat:".2f"|cut:"-" }})
+                            </span>
+                        {% else %}
+                            <span class="text-green-600">
+                                {{ meal.projected_profit }}
+                            </span>
+                        {% endif %}
+                    </td>
+
+                    <td class="px-6 py-4 text-center align-middle">
+                        {% if meal.description %}
+                            <button onclick="openInstructionsModal('{{ meal.name|escapejs }}', '{{ meal.description|escapejs }}')" 
+                                    class="text-xs bg-brand-light text-brand-teal border border-brand-teal px-3 py-1 rounded-full hover:bg-brand-teal hover:text-white transition font-bold shadow-sm">
+                                View Description
+                            </button>
+                        {% else %}
+                            <span class="text-xs text-gray-300 italic">No notes</span>
+                        {% endif %}
+                    </td>
+
+                    <td class="px-6 py-4 text-center align-middle space-x-3">
+                        <a href="{% url 'edit_meal' meal.id %}" class="text-gray-400 hover:text-brand-teal transition inline-block"><i class="fa-solid fa-pen-to-square fa-lg"></i></a>
+                        <a href="{% url 'delete_meal' meal.id %}" class="text-gray-400 hover:text-red-500 transition inline-block" onclick="return confirm('Delete Meal?')"><i class="fa-solid fa-trash fa-lg"></i></a>
                     </td>
                 </tr>
                 {% empty %}
-                <tr><td colspan="3" class="px-6 py-8 text-center text-gray-400 italic">No meals created yet.</td></tr>
+                <tr><td colspan="6" class="px-6 py-8 text-center text-gray-400 italic">No meals created yet.</td></tr>
                 {% endfor %}
             </tbody>
         </table>
@@ -206,4 +262,38 @@
         </div>
     </form>
 </dialog>
+
+<dialog id="modal-instructions" class="p-0 rounded-xl shadow-2xl backdrop:bg-brand-dark/80 w-full max-w-lg open:animate-[fadeIn_0.2s_ease-out]">
+    <div class="bg-brand-dark p-5 border-b border-gray-700 flex justify-between items-center">
+        <h3 id="modal-instructions-title" class="text-white font-bold text-lg">Recipe Name</h3>
+        <button onclick="document.getElementById('modal-instructions').close()" class="text-gray-400 hover:text-white transition">
+            <i class="fa-solid fa-xmark fa-lg"></i>
+        </button>
+    </div>
+    <div class="p-8 bg-white">
+        <div class="prose prose-sm max-w-none text-gray-600 leading-relaxed">
+            <p id="modal-instructions-text" class="whitespace-pre-wrap"></p>
+        </div>
+        <div class="mt-8 flex justify-end">
+            <button onclick="document.getElementById('modal-instructions').close()" class="bg-gray-100 text-gray-600 px-6 py-2 rounded-lg font-bold hover:bg-gray-200 transition">
+                Close
+            </button>
+        </div>
+    </div>
+</dialog>
+
+<script>
+    function openInstructionsModal(title, text) {
+        const modal = document.getElementById('modal-instructions');
+        const titleEl = document.getElementById('modal-instructions-title');
+        const textEl = document.getElementById('modal-instructions-text');
+        
+        // Inject content
+        titleEl.textContent = title;
+        textEl.textContent = text;
+        
+        // Open modal
+        modal.showModal();
+    }
+</script>
 {% endblock %}

@@ -8,37 +8,52 @@
     </div>
     
     <div class="bg-white rounded-xl shadow-lg border border-gray-100 p-8">
-        <form method="POST">
+        <form method="POST" id="recipe-form">
             {% csrf_token %}
             
             <div class="mb-8 grid grid-cols-1 gap-6">
                 <div>
                     <label class="block text-brand-dark font-bold mb-2">Recipe Name</label>
-                    {{ form.name }} </div>
+                    {{ form.name }} 
+                </div>
                 <div>
                     <label class="block text-brand-dark font-bold mb-2">Instructions</label>
                     {{ form.instructions }}
                 </div>
             </div>
 
-            <h3 class="text-xl font-bold text-brand-dark mb-4 border-b pb-2"><i class="fa-solid fa-carrot text-brand-teal mr-2"></i>Ingredients</h3>
+            <div class="flex justify-between items-end mb-4 border-b pb-2">
+                <h3 class="text-xl font-bold text-brand-dark"><i class="fa-solid fa-carrot text-brand-teal mr-2"></i>Ingredients</h3>
+                <button type="button" id="add-ingredient-btn" class="text-sm bg-brand-light text-brand-teal border border-brand-teal font-bold py-1 px-3 rounded hover:bg-brand-teal hover:text-white transition">
+                    + Add Ingredient
+                </button>
+            </div>
+
+            {{ formset.management_form }}
+
             <div class="overflow-x-auto mb-8">
-                <table class="w-full text-left">
+                <table class="w-full text-left" id="ingredient-table">
                     <thead class="bg-gray-50 text-gray-600 text-sm uppercase">
                         <tr>
-                            <th class="p-3">Ingredient</th>
-                            <th class="p-3">Quantity</th>
-                            <th class="p-3 text-center">Delete?</th>
+                            <th class="p-3 w-1/2">Ingredient</th>
+                            <th class="p-3 w-1/3">Quantity</th>
+                            <th class="p-3 text-center w-1/6">Actions</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-gray-100">
-                        {{ formset.management_form }}
+                    <tbody class="divide-y divide-gray-100" id="formset-container">
                         {% for form in formset %}
-                            <tr>
-                                <td class="p-3">{{ form.ingredient }}</td>
+                            <tr class="ingredient-row group">
+                                <td class="p-3">
+                                    {{ form.ingredient }}
+                                    {% if form.instance.pk %}{{ form.id }}{% endif %}
+                                </td>
                                 <td class="p-3">{{ form.quantity }}</td>
-                                <td class="p-3 text-center">{{ form.DELETE }}</td>
-                                {{ form.id }} 
+                                <td class="p-3 text-center">
+                                    <div class="hidden">{{ form.DELETE }}</div>
+                                    <button type="button" class="remove-row-btn text-gray-400 hover:text-red-500 transition">
+                                        <i class="fa-solid fa-trash"></i>
+                                    </button>
+                                </td>
                             </tr>
                         {% endfor %}
                     </tbody>
@@ -54,4 +69,63 @@
         </form>
     </div>
 </div>
+
+<div id="empty-form" class="hidden">
+    <table>
+        <tr class="ingredient-row group">
+            <td class="p-3">
+                {{ formset.empty_form.ingredient }}
+            </td>
+            <td class="p-3">
+                {{ formset.empty_form.quantity }}
+            </td>
+            <td class="p-3 text-center">
+                <div class="hidden">{{ formset.empty_form.DELETE }}</div>
+                <button type="button" class="remove-row-btn text-gray-400 hover:text-red-500 transition">
+                    <i class="fa-solid fa-trash"></i>
+                </button>
+            </td>
+        </tr>
+    </table>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const container = document.getElementById('formset-container');
+        const addButton = document.getElementById('add-ingredient-btn');
+        const totalForms = document.getElementById('id_recipe_ingredients-TOTAL_FORMS');
+        const emptyFormHtml = document.getElementById('empty-form').querySelector('tr').outerHTML;
+
+        // 1. Logic to Add Row
+        addButton.addEventListener('click', function() {
+            const formCount = parseInt(totalForms.value);
+            // Replace __prefix__ with the current index (e.g., 0, 1, 2)
+            const newRowHtml = emptyFormHtml.replace(/__prefix__/g, formCount);
+            
+            // Append to table
+            container.insertAdjacentHTML('beforeend', newRowHtml);
+            
+            // Increment form count
+            totalForms.value = formCount + 1;
+        });
+
+        // 2. Logic to Remove Row (Delegated Event)
+        container.addEventListener('click', function(e) {
+            if (e.target.closest('.remove-row-btn')) {
+                const row = e.target.closest('tr');
+                const deleteCheckbox = row.querySelector('input[type="checkbox"][name$="-DELETE"]');
+                
+                if (deleteCheckbox) {
+                    // It's an existing record: Check the box, hide the row
+                    deleteCheckbox.checked = true;
+                    row.style.display = 'none';
+                } else {
+                    // It's a brand new row (not saved yet): Remove from DOM
+                    row.remove();
+                    // Optional: You could decrement TOTAL_FORMS here, but Django handles gaps fine
+                }
+            }
+        });
+    });
+</script>
 {% endblock %}

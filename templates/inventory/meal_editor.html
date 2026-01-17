@@ -8,39 +8,76 @@
     </div>
     
     <div class="bg-white rounded-xl shadow-lg border border-gray-100 p-8">
-        <form method="POST">
+        <form method="POST" id="meal-form">
             {% csrf_token %}
             
-            <div class="mb-8">
-                <label class="block text-brand-dark font-bold mb-2">Meal Name</label>
-                {{ form.name }}
-            </div>
-            <div class="mb-8">
-                <label class="block text-brand-dark font-bold mb-2">Description</label>
-                {{ form.description }}
+            <div class="mb-8 grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="md:col-span-2">
+                    <label class="block text-brand-dark font-bold mb-2">Meal Name</label>
+                    {{ form.name }}
+                </div>
+                
+                <div class="md:col-span-2">
+                    <label class="block text-brand-dark font-bold mb-2">Description</label>
+                    {{ form.description }}
+                </div>
+
+                <div>
+                    <label class="block text-brand-dark font-bold mb-2">Customer Price ($)</label>
+                    <div class="relative">
+                        <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-500 font-bold z-10 pointer-events-none">
+                            $
+                        </span>
+                        
+                        <input type="number" 
+                               name="customer_price_0" 
+                               step="0.50" 
+                               class="w-full !pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-teal focus:border-transparent transition" 
+                               value="{{ form.customer_price.value.amount|default:'' }}" 
+                               placeholder="0.00"
+                               required>
+                               
+                        <input type="hidden" name="customer_price_1" value="USD">
+                    </div>
+                    <p class="text-xs text-gray-400 mt-1">What the customer pays.</p>
+                    {{ form.customer_price.errors }}
+                </div>
             </div>
 
-            <h3 class="text-xl font-bold text-brand-dark mb-4 border-b pb-2">
-                <i class="fa-solid fa-utensils text-brand-teal mr-2"></i>Included Recipes
-            </h3>
+            <div class="flex justify-between items-end mb-4 border-b pb-2">
+                <h3 class="text-xl font-bold text-brand-dark">
+                    <i class="fa-solid fa-utensils text-brand-teal mr-2"></i>Included Recipes
+                </h3>
+                <button type="button" id="add-recipe-btn" class="text-sm bg-brand-light text-brand-teal border border-brand-teal font-bold py-1 px-3 rounded hover:bg-brand-teal hover:text-white transition">
+                    + Add Recipe
+                </button>
+            </div>
             
+            {{ formset.management_form }}
+
             <div class="overflow-x-auto mb-8">
-                <table class="w-full text-left">
+                <table class="w-full text-left" id="recipe-table">
                     <thead class="bg-gray-50 text-gray-600 text-sm uppercase">
                         <tr>
-                            <th class="p-3">Recipe</th>
-                            <th class="p-3">Servings</th>
-                            <th class="p-3 text-center">Delete?</th>
+                            <th class="p-3 w-1/2">Recipe</th>
+                            <th class="p-3 w-1/3">Servings</th>
+                            <th class="p-3 text-center w-1/6">Actions</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-gray-100">
-                        {{ formset.management_form }}
+                    <tbody class="divide-y divide-gray-100" id="formset-container">
                         {% for form in formset %}
-                            <tr>
-                                <td class="p-3">{{ form.recipe }}</td>
+                            <tr class="recipe-row group">
+                                <td class="p-3">
+                                    {{ form.recipe }}
+                                    {% if form.instance.pk %}{{ form.id }}{% endif %}
+                                </td>
                                 <td class="p-3">{{ form.quantity }}</td>
-                                <td class="p-3 text-center">{{ form.DELETE }}</td>
-                                {{ form.id }} 
+                                <td class="p-3 text-center">
+                                    <div class="hidden">{{ form.DELETE }}</div>
+                                    <button type="button" class="remove-row-btn text-gray-400 hover:text-red-500 transition">
+                                        <i class="fa-solid fa-trash"></i>
+                                    </button>
+                                </td>
                             </tr>
                         {% endfor %}
                     </tbody>
@@ -56,4 +93,56 @@
         </form>
     </div>
 </div>
+
+<div id="empty-form" class="hidden">
+    <table>
+        <tr class="recipe-row group">
+            <td class="p-3">
+                {{ formset.empty_form.recipe }}
+            </td>
+            <td class="p-3">
+                {{ formset.empty_form.quantity }}
+            </td>
+            <td class="p-3 text-center">
+                <div class="hidden">{{ formset.empty_form.DELETE }}</div>
+                <button type="button" class="remove-row-btn text-gray-400 hover:text-red-500 transition">
+                    <i class="fa-solid fa-trash"></i>
+                </button>
+            </td>
+        </tr>
+    </table>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const container = document.getElementById('formset-container');
+        const addButton = document.getElementById('add-recipe-btn');
+        // 'meal_recipes' is the related_name defined in your Model
+        const totalForms = document.getElementById('id_meal_recipes-TOTAL_FORMS'); 
+        const emptyFormHtml = document.getElementById('empty-form').querySelector('tr').outerHTML;
+
+        // 1. Logic to Add Row
+        addButton.addEventListener('click', function() {
+            const formCount = parseInt(totalForms.value);
+            const newRowHtml = emptyFormHtml.replace(/__prefix__/g, formCount);
+            container.insertAdjacentHTML('beforeend', newRowHtml);
+            totalForms.value = formCount + 1;
+        });
+
+        // 2. Logic to Remove Row
+        container.addEventListener('click', function(e) {
+            if (e.target.closest('.remove-row-btn')) {
+                const row = e.target.closest('tr');
+                const deleteCheckbox = row.querySelector('input[type="checkbox"][name$="-DELETE"]');
+                
+                if (deleteCheckbox) {
+                    deleteCheckbox.checked = true;
+                    row.style.display = 'none';
+                } else {
+                    row.remove();
+                }
+            }
+        });
+    });
+</script>
 {% endblock %}
