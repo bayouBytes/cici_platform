@@ -109,6 +109,7 @@
                 <thead class="bg-gray-50 text-gray-500 uppercase tracking-wider text-xs">
                     <tr>
                         <th class="px-6 py-3 font-semibold text-brand-teal">Dish</th>
+                        <th class="px-6 py-3 font-semibold text-brand-teal">Ingredients</th>
                         <th class="px-6 py-3 font-semibold text-brand-teal">Base Cost</th>
                         <th class="px-6 py-3 text-center font-semibold text-brand-teal">Details</th> 
                         <th class="px-6 py-3 text-right font-semibold text-brand-teal">Actions</th>
@@ -117,14 +118,32 @@
                 <tbody class="divide-y divide-gray-100">
                     {% for recipe in recipes %}
                     <tr class="hover:bg-brand-light/50 transition">
-                        <td class="px-6 py-3 font-medium text-brand-dark">{{ recipe.name }}</td>
+                        <td class="px-6 py-3 font-medium text-brand-dark">
+                            <a href="{% url 'edit_recipe' recipe.id %}" class="hover:text-brand-teal hover:underline transition">
+                                {{ recipe.name }}
+                            </a>
+                        </td>
+                        <td class="px-6 py-3 text-gray-600 text-xs max-w-[260px]" title="{% for ri in recipe.recipe_ingredients.all %}{{ ri.ingredient.name }} ({{ ri.quantity }} {{ ri.ingredient.unit_display }}){% if not forloop.last %}, {% endif %}{% endfor %}">
+                            {% with total=recipe.recipe_ingredients.count %}
+                                {% for ri in recipe.recipe_ingredients.all|slice:":3" %}
+                                    <span class="inline-block bg-gray-50 border border-gray-200 rounded-full px-2 py-0.5 mr-1 mb-1">
+                                        {{ ri.ingredient.name }} ({{ ri.quantity }} {{ ri.ingredient.unit_display }})
+                                    </span>
+                                {% endfor %}
+                                {% if total > 3 %}
+                                    <span class="inline-block text-gray-400 text-[10px] font-semibold uppercase tracking-wide align-middle">
+                                        +{{ total|add:"-3" }} more
+                                    </span>
+                                {% endif %}
+                            {% endwith %}
+                        </td>
                         <td class="px-6 py-3 text-gray-600 font-mono">{{ recipe.calculate_cost }}</td>
                         
                         <td class="px-6 py-3 text-center">
                             {% if recipe.instructions %}
-                                <button onclick="openInstructionsModal('{{ recipe.name|escapejs }}', '{{ recipe.instructions|escapejs }}')" 
+                                <button onclick="openInstructionsModal('{{ recipe.name|escapejs }}', '{{ recipe.instructions|escapejs }}', '{% for ri in recipe.recipe_ingredients.all %}{{ ri.ingredient.name|escapejs }} ({{ ri.quantity }} {{ ri.ingredient.unit_display|escapejs }}){% if not forloop.last %}, {% endif %}{% endfor %}')" 
                                         class="text-xs bg-brand-light text-brand-teal border border-brand-teal px-3 py-1 rounded-full hover:bg-brand-teal hover:text-white transition font-bold">
-                                    View Instructions
+                                    View Ingredients &amp; Instructions
                                 </button>
                             {% else %}
                                 <span class="text-xs text-gray-300 italic">No text</span>
@@ -137,7 +156,7 @@
                         </td>
                     </tr>
                     {% empty %}
-                    <tr><td colspan="4" class="px-6 py-8 text-center text-gray-400 italic">No recipes created yet.</td></tr>
+                    <tr><td colspan="5" class="px-6 py-8 text-center text-gray-400 italic">No recipes created yet.</td></tr>
                     {% endfor %}
                 </tbody>
             </table>
@@ -383,6 +402,13 @@
         </button>
     </div>
     <div class="p-8 bg-white">
+        <div class="mb-6">
+            <h4 class="text-xs uppercase tracking-wider text-brand-teal font-bold mb-2">Ingredients</h4>
+            <ul id="modal-instructions-ingredients" class="text-gray-600 text-sm list-disc pl-5"></ul>
+        </div>
+        <div class="mb-2">
+            <h4 class="text-xs uppercase tracking-wider text-brand-teal font-bold">Instructions</h4>
+        </div>
         <div class="prose prose-sm max-w-none text-gray-600 leading-relaxed">
             <p id="modal-instructions-text" class="whitespace-pre-wrap"></p>
         </div>
@@ -425,14 +451,29 @@
         modal.showModal();
     }
 
-    function openInstructionsModal(title, text) {
+    function openInstructionsModal(title, text, ingredients) {
         const modal = document.getElementById('modal-instructions');
         const titleEl = document.getElementById('modal-instructions-title');
         const textEl = document.getElementById('modal-instructions-text');
+        const ingredientsEl = document.getElementById('modal-instructions-ingredients');
         
         // Inject content
         titleEl.textContent = title;
         textEl.textContent = text;
+        ingredientsEl.innerHTML = '';
+        if (ingredients) {
+            ingredients.split(',').forEach(function(item) {
+                const text = item.trim();
+                if (!text) return;
+                const li = document.createElement('li');
+                li.textContent = text;
+                ingredientsEl.appendChild(li);
+            });
+        } else {
+            const li = document.createElement('li');
+            li.textContent = 'No ingredients listed.';
+            ingredientsEl.appendChild(li);
+        }
         
         // Open modal
         modal.showModal();
