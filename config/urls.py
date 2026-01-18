@@ -18,9 +18,17 @@ from django.contrib import admin
 from django.urls import path, include
 from users.views import signup
 from store.views import home, checkout, profile, batch_fulfillment_report
-from inventory.views import chef_dashboard, add_ingredient, manage_recipe, delete_recipe, manage_meal, delete_meal
 from store.views import add_menu_item
-from inventory.views import chef_dashboard, add_ingredient, manage_recipe, delete_recipe, manage_meal, delete_meal
+from inventory.views import (
+    chef_dashboard,
+    add_ingredient,
+    edit_ingredient,
+    delete_ingredient,
+    manage_recipe,
+    delete_recipe,
+    manage_meal,
+    delete_meal,
+)
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', home, name='home'),
@@ -33,6 +41,8 @@ urlpatterns = [
     path('accounts/', include('django.contrib.auth.urls')), # Handles /login/ and /logout/
     path('chef/', chef_dashboard, name='chef_dashboard'),
     path('chef/ingredient/add/', add_ingredient, name='add_ingredient'),
+    path('chef/ingredient/edit/<int:ingredient_id>/', edit_ingredient, name='edit_ingredient'),
+    path('chef/ingredient/delete/<int:ingredient_id>/', delete_ingredient, name='delete_ingredient'),
     path('chef/recipe/add/', manage_recipe, name='add_recipe'),
     path('chef/recipe/edit/<int:recipe_id>/', manage_recipe, name='edit_recipe'),
     path('chef/recipe/delete/<int:recipe_id>/', delete_recipe, name='delete_recipe'),

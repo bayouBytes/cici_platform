@@ -21,6 +21,7 @@ def chef_dashboard(request):
         'active_week': active_week,
         # Pass empty forms for the 'Add' modals
         'ingredient_form': IngredientForm(),
+        'edit_ingredient_form': IngredientForm(prefix='edit'),
         'menu_item_form': MenuItemForm(initial={'menu_week': active_week}),
         'meals': Meal.objects.all(),
     }
@@ -34,6 +35,21 @@ def add_ingredient(request):
             form.save()
         else:
             print(form.errors)  # Add this to see why it failed in your console
+    return redirect('chef_dashboard')
+
+@staff_member_required
+def edit_ingredient(request, ingredient_id):
+    ingredient = get_object_or_404(Ingredient, id=ingredient_id)
+    if request.method == 'POST':
+        form = IngredientForm(request.POST, instance=ingredient)
+        if form.is_valid():
+            form.save()
+    return redirect('chef_dashboard')
+
+@staff_member_required
+def delete_ingredient(request, ingredient_id):
+    ingredient = get_object_or_404(Ingredient, id=ingredient_id)
+    ingredient.delete()
     return redirect('chef_dashboard')
 
 @staff_member_required

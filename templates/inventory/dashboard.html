@@ -36,24 +36,61 @@
                     <tr>
                         <th class="px-6 py-3 font-semibold text-brand-teal">Name</th>
                         <th class="px-6 py-3 font-semibold text-brand-teal">In Stock</th>
+                        <th class="px-6 py-3 font-semibold text-brand-teal">Unit</th>
                         <th class="px-6 py-3 text-right font-semibold text-brand-teal">Cost / Unit</th>
+                        <th class="px-6 py-3 text-right font-semibold text-brand-teal">Actions</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-100">
                     {% for ing in ingredients %}
                     <tr class="hover:bg-brand-light/50 transition group">
                         <td class="px-6 py-3 font-medium text-brand-dark group-hover:text-brand-teal transition-colors">
-                            {{ ing.name }}
+                            <button type="button"
+                                    class="text-left hover:underline"
+                                    data-edit-url="{% url 'edit_ingredient' ing.id %}"
+                                    data-name="{{ ing.name|escapejs }}"
+                                    data-quantity="{{ ing.quantity }}"
+                                    data-unit-type="{{ ing.unit_type }}"
+                                    data-unit-custom="{{ ing.unit_custom|default_if_none:''|escapejs }}"
+                                    data-cost-amount="{{ ing.cost_per_unit.amount }}"
+                                    data-cost-currency="{{ ing.cost_per_unit.currency }}"
+                                    onclick="openIngredientEdit(this)">
+                                {{ ing.name }}
+                            </button>
                         </td>
                         <td class="px-6 py-3 font-mono text-gray-700">
-                            {{ ing.quantity }} {{ ing.unit_type }}
+                            {{ ing.quantity }}
+                        </td>
+                        <td class="px-6 py-3 font-mono text-gray-700">
+                            {{ ing.unit_display }}
                         </td>
                         <td class="px-6 py-3 text-right text-gray-600 font-mono">
                             {{ ing.cost_per_unit }}
                         </td>
+                        <td class="px-6 py-3 text-right space-x-3">
+                            <button type="button"
+                                    class="text-gray-400 hover:text-brand-teal transition"
+                                    title="Edit"
+                                    data-edit-url="{% url 'edit_ingredient' ing.id %}"
+                                    data-name="{{ ing.name|escapejs }}"
+                                    data-quantity="{{ ing.quantity }}"
+                                    data-unit-type="{{ ing.unit_type }}"
+                                    data-unit-custom="{{ ing.unit_custom|default_if_none:''|escapejs }}"
+                                    data-cost-amount="{{ ing.cost_per_unit.amount }}"
+                                    data-cost-currency="{{ ing.cost_per_unit.currency }}"
+                                    onclick="openIngredientEdit(this)">
+                                <i class="fa-solid fa-pen-to-square"></i>
+                            </button>
+                            <a href="{% url 'delete_ingredient' ing.id %}"
+                               class="text-gray-400 hover:text-red-500 transition"
+                               title="Delete"
+                               onclick="return confirm('Delete {{ ing.name|escapejs }}?')">
+                                <i class="fa-solid fa-trash"></i>
+                            </a>
+                        </td>
                     </tr>
                     {% empty %}
-                    <tr><td colspan="3" class="px-6 py-8 text-center text-gray-400 italic">Pantry is empty.</td></tr>
+                    <tr><td colspan="5" class="px-6 py-8 text-center text-gray-400 italic">Pantry is empty.</td></tr>
                     {% endfor %}
                 </tbody>
             </table>
@@ -240,7 +277,82 @@
     </div>
     <form method="POST" action="{% url 'add_ingredient' %}" class="p-6 bg-white">
         {% csrf_token %}
-        {{ ingredient_form.as_p }}
+        {% if ingredient_form.non_field_errors %}
+            <div class="mb-4 text-sm text-red-600">
+                {{ ingredient_form.non_field_errors }}
+            </div>
+        {% endif %}
+        <div class="grid grid-cols-1 gap-4">
+            <div>
+                <label class="block text-brand-dark font-bold mb-2" for="{{ ingredient_form.name.id_for_label }}">Name</label>
+                {{ ingredient_form.name }}
+                {{ ingredient_form.name.errors }}
+            </div>
+            <div>
+                <label class="block text-brand-dark font-bold mb-2" for="{{ ingredient_form.quantity.id_for_label }}">Quantity</label>
+                {{ ingredient_form.quantity }}
+                {{ ingredient_form.quantity.errors }}
+            </div>
+            <div>
+                <label class="block text-brand-dark font-bold mb-2" for="{{ ingredient_form.unit_type.id_for_label }}">Unit</label>
+                {{ ingredient_form.unit_type }}
+                {{ ingredient_form.unit_type.errors }}
+            </div>
+            <div id="unit-custom-field" class="hidden">
+                <label class="block text-brand-dark font-bold mb-2" for="{{ ingredient_form.unit_custom.id_for_label }}">Custom Unit</label>
+                {{ ingredient_form.unit_custom }}
+                {{ ingredient_form.unit_custom.errors }}
+            </div>
+            <div>
+                <label class="block text-brand-dark font-bold mb-2" for="{{ ingredient_form.cost_per_unit.id_for_label }}">Cost per Unit</label>
+                <div class="relative">
+                    <i class="fa-solid fa-dollar-sign absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                    {{ ingredient_form.cost_per_unit.subwidgets.0 }}
+                </div>
+                {{ ingredient_form.cost_per_unit.subwidgets.1 }}
+                {{ ingredient_form.cost_per_unit.errors }}
+            </div>
+        </div>
+        <div class="mt-8 flex justify-end gap-3">
+            <button type="button" onclick="this.closest('dialog').close()" class="px-5 py-2 text-gray-500 hover:bg-gray-50 rounded-lg font-medium transition">Cancel</button>
+            <button type="submit" class="bg-brand-teal text-white px-6 py-2 rounded-lg font-bold hover:bg-brand-dark transition shadow-md">Save</button>
+        </div>
+    </form>
+</dialog>
+
+<dialog id="modal-ingredient-edit" class="p-0 rounded-xl shadow-2xl backdrop:bg-brand-dark/80 w-full max-w-md open:animate-[fadeIn_0.2s_ease-out]">
+    <div class="bg-brand-dark p-5 border-b border-gray-700 flex justify-between items-center">
+        <h3 class="text-white font-bold text-lg">Edit Ingredient</h3>
+        <button onclick="this.closest('dialog').close()" class="text-gray-400 hover:text-white transition"><i class="fa-solid fa-xmark fa-lg"></i></button>
+    </div>
+    <form method="POST" id="ingredient-edit-form" class="p-6 bg-white">
+        {% csrf_token %}
+        <div class="grid grid-cols-1 gap-4">
+            <div>
+                <label class="block text-brand-dark font-bold mb-2" for="{{ edit_ingredient_form.name.id_for_label }}">Name</label>
+                {{ edit_ingredient_form.name }}
+            </div>
+            <div>
+                <label class="block text-brand-dark font-bold mb-2" for="{{ edit_ingredient_form.quantity.id_for_label }}">Quantity</label>
+                {{ edit_ingredient_form.quantity }}
+            </div>
+            <div>
+                <label class="block text-brand-dark font-bold mb-2" for="{{ edit_ingredient_form.unit_type.id_for_label }}">Unit</label>
+                {{ edit_ingredient_form.unit_type }}
+            </div>
+            <div id="unit-custom-field-edit" class="hidden">
+                <label class="block text-brand-dark font-bold mb-2" for="{{ edit_ingredient_form.unit_custom.id_for_label }}">Custom Unit</label>
+                {{ edit_ingredient_form.unit_custom }}
+            </div>
+            <div>
+                <label class="block text-brand-dark font-bold mb-2" for="{{ edit_ingredient_form.cost_per_unit.id_for_label }}">Cost per Unit</label>
+                <div class="relative">
+                    <i class="fa-solid fa-dollar-sign absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                    {{ edit_ingredient_form.cost_per_unit.subwidgets.0 }}
+                </div>
+                {{ edit_ingredient_form.cost_per_unit.subwidgets.1 }}
+            </div>
+        </div>
         <div class="mt-8 flex justify-end gap-3">
             <button type="button" onclick="this.closest('dialog').close()" class="px-5 py-2 text-gray-500 hover:bg-gray-50 rounded-lg font-medium transition">Cancel</button>
             <button type="submit" class="bg-brand-teal text-white px-6 py-2 rounded-lg font-bold hover:bg-brand-dark transition shadow-md">Save</button>
@@ -283,6 +395,36 @@
 </dialog>
 
 <script>
+    function toggleCustomUnitField(selectId, fieldId) {
+        const unitSelect = document.getElementById(selectId);
+        const customField = document.getElementById(fieldId);
+        if (!unitSelect || !customField) return;
+
+        const isOther = unitSelect.value === 'OTHER';
+        customField.classList.toggle('hidden', !isOther);
+    }
+
+    function openIngredientEdit(trigger) {
+        const modal = document.getElementById('modal-ingredient-edit');
+        const form = document.getElementById('ingredient-edit-form');
+
+        if (!modal || !form) return;
+
+        form.action = trigger.dataset.editUrl;
+        document.getElementById('{{ edit_ingredient_form.name.id_for_label }}').value = trigger.dataset.name || '';
+        document.getElementById('{{ edit_ingredient_form.quantity.id_for_label }}').value = trigger.dataset.quantity || '';
+        document.getElementById('{{ edit_ingredient_form.unit_type.id_for_label }}').value = trigger.dataset.unitType || '';
+        document.getElementById('{{ edit_ingredient_form.unit_custom.id_for_label }}').value = trigger.dataset.unitCustom || '';
+
+        const amountInput = form.querySelector('input[name$="cost_per_unit_0"]');
+        const currencyInput = form.querySelector('[name$="cost_per_unit_1"]');
+        if (amountInput) amountInput.value = trigger.dataset.costAmount || '';
+        if (currencyInput) currencyInput.value = trigger.dataset.costCurrency || 'USD';
+
+        toggleCustomUnitField('{{ edit_ingredient_form.unit_type.id_for_label }}', 'unit-custom-field-edit');
+        modal.showModal();
+    }
+
     function openInstructionsModal(title, text) {
         const modal = document.getElementById('modal-instructions');
         const titleEl = document.getElementById('modal-instructions-title');
@@ -295,5 +437,27 @@
         // Open modal
         modal.showModal();
     }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        toggleCustomUnitField('{{ ingredient_form.unit_type.id_for_label }}', 'unit-custom-field');
+        const unitSelect = document.getElementById('{{ ingredient_form.unit_type.id_for_label }}');
+        if (unitSelect) {
+            unitSelect.addEventListener('change', function() {
+                toggleCustomUnitField('{{ ingredient_form.unit_type.id_for_label }}', 'unit-custom-field');
+            });
+        }
+
+        const addCurrencyInput = document.querySelector('#modal-ingredient [name$="cost_per_unit_1"]');
+        if (addCurrencyInput) {
+            addCurrencyInput.value = 'USD';
+        }
+
+        const editUnitSelect = document.getElementById('{{ edit_ingredient_form.unit_type.id_for_label }}');
+        if (editUnitSelect) {
+            editUnitSelect.addEventListener('change', function() {
+                toggleCustomUnitField('{{ edit_ingredient_form.unit_type.id_for_label }}', 'unit-custom-field-edit');
+            });
+        }
+    });
 </script>
 {% endblock %}

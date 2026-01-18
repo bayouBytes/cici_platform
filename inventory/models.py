@@ -6,7 +6,18 @@ class Ingredient(models.Model):
         ('LB', 'Pounds'),
         ('OZ', 'Ounces'),
         ('G', 'Grams'),
+        ('KG', 'Kilograms'),
+        ('MG', 'Milligrams'),
+        ('ML', 'Milliliters'),
+        ('L', 'Liters'),
+        ('TSP', 'Teaspoons'),
+        ('TBSP', 'Tablespoons'),
+        ('CUP', 'Cups'),
+        ('PT', 'Pints'),
+        ('QT', 'Quarts'),
+        ('GAL', 'Gallons'),
         ('QTY', 'Quantity/Count'),
+        ('OTHER', 'Other (custom)'),
     ]
     
     name = models.CharField(max_length=100)
@@ -17,10 +28,21 @@ class Ingredient(models.Model):
         help_text="Current amount in stock"
     )
     unit_type = models.CharField(max_length=5, choices=UNIT_CHOICES)
+    unit_custom = models.CharField(
+        max_length=50,
+        blank=True,
+        help_text="Custom unit label when using Other (custom)."
+    )
     cost_per_unit = MoneyField(max_digits=14, decimal_places=2, default_currency='USD')
 
+    @property
+    def unit_display(self):
+        if self.unit_type == 'OTHER' and self.unit_custom:
+            return self.unit_custom
+        return dict(self.UNIT_CHOICES).get(self.unit_type, self.unit_type)
+
     def __str__(self):
-        return f"{self.name} ({self.quantity} {self.unit_type})"
+        return f"{self.name} ({self.quantity} {self.unit_display})"
 
 class Recipe(models.Model):
     name = models.CharField(max_length=200)
