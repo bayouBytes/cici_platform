@@ -8,12 +8,39 @@ from djmoney.forms.widgets import MoneyWidget
 class IngredientForm(forms.ModelForm):
     class Meta:
         model = Ingredient
-        fields = ['name', 'quantity', 'unit_type', 'cost_per_unit']
+        fields = ['name', 'quantity', 'unit_type', 'unit_custom', 'cost_per_unit']
         
         widgets = {
             'name': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'e.g. Flour'}),
             'quantity': forms.NumberInput(attrs={'class': 'form-input', 'step': '0.1'}),
+            'unit_type': forms.Select(attrs={'class': 'form-input'}),
+            'unit_custom': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'e.g. Pinch, Clove, Bag'}),
+            'cost_per_unit': MoneyWidget(attrs={'class': 'form-input', 'placeholder': '0.00'}),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        cost_widget = self.fields['cost_per_unit'].widget
+        if isinstance(cost_widget, MoneyWidget):
+            cost_widget.widgets[0].attrs.update({
+                'class': 'form-input pl-8',
+                'inputmode': 'decimal',
+                'style': 'padding-left: 2rem !important;',
+            })
+            cost_widget.widgets[1] = forms.HiddenInput()
+
+    def clean(self):
+        cleaned_data = super().clean()
+        unit_type = cleaned_data.get('unit_type')
+        unit_custom = cleaned_data.get('unit_custom', '')
+
+        if unit_type == 'OTHER':
+            if not unit_custom.strip():
+                self.add_error('unit_custom', 'Enter a custom unit when using Other (custom).')
+        else:
+            cleaned_data['unit_custom'] = ''
+
+        return cleaned_data
 
 class RecipeForm(forms.ModelForm):
     class Meta:

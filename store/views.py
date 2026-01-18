@@ -110,7 +110,7 @@ def batch_fulfillment_report(request):
                     else:
                         grocery_list[ingredient_name] = {
                             'qty': total_needed,
-                            'unit': ri.ingredient.unit_type
+                            'unit': ri.ingredient.unit_display
                         }
 
     return render(request, 'store/report.html', {
