@@ -1,25 +1,28 @@
 import re
 from django import forms
 from django.forms import inlineformset_factory
-from .models import Ingredient, Recipe, RecipeIngredient
+from .models import Ingredient, IngredientUnit, Recipe, RecipeIngredient
 from .models import Meal, MealRecipe
 from djmoney.forms.widgets import MoneyWidget 
 
 class IngredientForm(forms.ModelForm):
     class Meta:
         model = Ingredient
-        fields = ['name', 'quantity', 'unit_type', 'unit_custom', 'cost_per_unit']
+        fields = ['name', 'quantity', 'unit', 'cost_per_unit']
         
         widgets = {
             'name': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'e.g. Flour'}),
-            'quantity': forms.NumberInput(attrs={'class': 'form-input', 'step': '0.1'}),
-            'unit_type': forms.Select(attrs={'class': 'form-input'}),
-            'unit_custom': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'e.g. Pinch, Clove, Bag'}),
+            'quantity': forms.NumberInput(attrs={'class': 'form-input', 'step': '0.1', 'placeholder': 'e.g. 1'}),
+            'unit': forms.Select(attrs={'class': 'form-input hidden'}),
             'cost_per_unit': MoneyWidget(attrs={'class': 'form-input', 'placeholder': '0.00'}),
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.fields['unit'].queryset = IngredientUnit.objects.all()
+        if not self.instance or not self.instance.pk:
+            self.fields['quantity'].initial = ''
+
         cost_widget = self.fields['cost_per_unit'].widget
         if isinstance(cost_widget, MoneyWidget):
             cost_widget.widgets[0].attrs.update({
@@ -29,27 +32,57 @@ class IngredientForm(forms.ModelForm):
             })
             cost_widget.widgets[1] = forms.HiddenInput()
 
-    def clean(self):
-        cleaned_data = super().clean()
-        unit_type = cleaned_data.get('unit_type')
-        unit_custom = cleaned_data.get('unit_custom', '')
 
-        if unit_type == 'OTHER':
-            if not unit_custom.strip():
-                self.add_error('unit_custom', 'Enter a custom unit when using Other (custom).')
-        else:
-            cleaned_data['unit_custom'] = ''
-
-        return cleaned_data
+class IngredientUnitForm(forms.ModelForm):
+    class Meta:
+        model = IngredientUnit
+        fields = ['name']
+        widgets = {
+            'name': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'e.g. Pounds'}),
+        }
 
 class RecipeForm(forms.ModelForm):
     class Meta:
         model = Recipe
         fields = ['name', 'instructions']
 
+class RecipeIngredientForm(forms.ModelForm):
+    class Meta:
+        model = RecipeIngredient
+        fields = ['ingredient', 'ingredient_name', 'ingredient_unit', 'quantity']
+        widgets = {
+            'ingredient': forms.Select(attrs={'class': 'form-input hidden'}),
+            'ingredient_name': forms.HiddenInput(),
+            'ingredient_unit': forms.HiddenInput(),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['ingredient'].required = False
+        self.fields['ingredient_name'].required = False
+        self.fields['ingredient_unit'].required = False
+        self.fields['ingredient'].queryset = Ingredient.objects.order_by('name')
+
+    def clean(self):
+        cleaned_data = super().clean()
+        ingredient = cleaned_data.get('ingredient')
+        ingredient_name = (cleaned_data.get('ingredient_name') or '').strip()
+        ingredient_unit = cleaned_data.get('ingredient_unit')
+
+        if not ingredient and not ingredient_name:
+            self.add_error('ingredient_name', 'Select or type an ingredient.')
+        if ingredient and ingredient_name:
+            cleaned_data['ingredient_name'] = ''
+            cleaned_data['ingredient_unit'] = None
+        if ingredient_name and not ingredient_unit:
+            self.add_error('ingredient_unit', 'Select a unit for this ingredient.')
+
+        return cleaned_data
+
 RecipeIngredientFormSet = inlineformset_factory(
     Recipe, RecipeIngredient,
-    fields=('ingredient', 'quantity'),
+    form=RecipeIngredientForm,
+    fields=('ingredient', 'ingredient_name', 'ingredient_unit', 'quantity'),
     extra=1, 
     can_delete=True
 )

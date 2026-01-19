@@ -50,8 +50,7 @@
                                     data-edit-url="{% url 'edit_ingredient' ing.id %}"
                                     data-name="{{ ing.name|escapejs }}"
                                     data-quantity="{{ ing.quantity }}"
-                                    data-unit-type="{{ ing.unit_type }}"
-                                    data-unit-custom="{{ ing.unit_custom|default_if_none:''|escapejs }}"
+                                    data-unit-id="{{ ing.unit_id }}"
                                     data-cost-amount="{{ ing.cost_per_unit.amount }}"
                                     data-cost-currency="{{ ing.cost_per_unit.currency }}"
                                     onclick="openIngredientEdit(this)">
@@ -61,7 +60,7 @@
                         <td class="px-6 py-3 font-mono text-gray-700">
                             {{ ing.quantity }}
                         </td>
-                        <td class="px-6 py-3 font-mono text-gray-700">
+                        <td class="px-6 py-3 font-mono text-gray-700" data-unit-id="{{ ing.unit_id }}">
                             {{ ing.unit_display }}
                         </td>
                         <td class="px-6 py-3 text-right text-gray-600 font-mono">
@@ -74,8 +73,7 @@
                                     data-edit-url="{% url 'edit_ingredient' ing.id %}"
                                     data-name="{{ ing.name|escapejs }}"
                                     data-quantity="{{ ing.quantity }}"
-                                    data-unit-type="{{ ing.unit_type }}"
-                                    data-unit-custom="{{ ing.unit_custom|default_if_none:''|escapejs }}"
+                                    data-unit-id="{{ ing.unit_id }}"
                                     data-cost-amount="{{ ing.cost_per_unit.amount }}"
                                     data-cost-currency="{{ ing.cost_per_unit.currency }}"
                                     onclick="openIngredientEdit(this)">
@@ -123,11 +121,14 @@
                                 {{ recipe.name }}
                             </a>
                         </td>
-                        <td class="px-6 py-3 text-gray-600 text-xs max-w-[260px]" title="{% for ri in recipe.recipe_ingredients.all %}{{ ri.ingredient.name }} ({{ ri.quantity }} {{ ri.ingredient.unit_display }}){% if not forloop.last %}, {% endif %}{% endfor %}">
+                        <td class="px-6 py-3 text-gray-600 text-xs max-w-[260px]" title="{% for ri in recipe.recipe_ingredients.all %}{{ ri.display_name }} ({{ ri.quantity }} {{ ri.display_unit }}){% if ri.missing_amount and ri.missing_amount != 0 %} (missing {{ ri.missing_amount|floatformat:2 }}{% if ri.display_unit %} {{ ri.display_unit }}{% endif %}){% endif %}{% if not forloop.last %}, {% endif %}{% endfor %}">
                             {% with total=recipe.recipe_ingredients.count %}
                                 {% for ri in recipe.recipe_ingredients.all|slice:":3" %}
-                                    <span class="inline-block bg-gray-50 border border-gray-200 rounded-full px-2 py-0.5 mr-1 mb-1">
-                                        {{ ri.ingredient.name }} ({{ ri.quantity }} {{ ri.ingredient.unit_display }})
+                                    <span class="inline-block border rounded-full px-2 py-0.5 mr-1 mb-1 {% if ri.is_in_stock %}bg-green-50 border-green-200 text-green-700{% else %}bg-red-50 border-red-200 text-red-700{% endif %}">
+                                        {{ ri.display_name }} ({{ ri.quantity }}{% if ri.display_unit %} {{ ri.display_unit }}{% endif %})
+                                        {% if not ri.is_in_stock %}
+                                            (missing {{ ri.missing_amount|floatformat:2 }}{% if ri.display_unit %} {{ ri.display_unit }}{% endif %})
+                                        {% endif %}
                                     </span>
                                 {% endfor %}
                                 {% if total > 3 %}
@@ -141,7 +142,7 @@
                         
                         <td class="px-6 py-3 text-center">
                             {% if recipe.instructions %}
-                                <button onclick="openInstructionsModal('{{ recipe.name|escapejs }}', '{{ recipe.instructions|escapejs }}', '{% for ri in recipe.recipe_ingredients.all %}{{ ri.ingredient.name|escapejs }} ({{ ri.quantity }} {{ ri.ingredient.unit_display|escapejs }}){% if not forloop.last %}, {% endif %}{% endfor %}')" 
+                                <button onclick="openInstructionsModal('{{ recipe.name|escapejs }}', '{{ recipe.instructions|escapejs }}', '{% for ri in recipe.recipe_ingredients.all %}{{ ri.display_name|escapejs }} ({{ ri.quantity }}{% if ri.display_unit %} {{ ri.display_unit|escapejs }}{% endif %}){% if not ri.is_in_stock %} (missing {{ ri.missing_amount|floatformat:2 }}{% if ri.display_unit %} {{ ri.display_unit|escapejs }}{% endif %}){% endif %}{% if not forloop.last %}, {% endif %}{% endfor %}')" 
                                         class="text-xs bg-brand-light text-brand-teal border border-brand-teal px-3 py-1 rounded-full hover:bg-brand-teal hover:text-white transition font-bold">
                                     View Ingredients &amp; Instructions
                                 </button>
@@ -313,14 +314,39 @@
                 {{ ingredient_form.quantity.errors }}
             </div>
             <div>
-                <label class="block text-brand-dark font-bold mb-2" for="{{ ingredient_form.unit_type.id_for_label }}">Unit</label>
-                {{ ingredient_form.unit_type }}
-                {{ ingredient_form.unit_type.errors }}
-            </div>
-            <div id="unit-custom-field" class="hidden">
-                <label class="block text-brand-dark font-bold mb-2" for="{{ ingredient_form.unit_custom.id_for_label }}">Custom Unit</label>
-                {{ ingredient_form.unit_custom }}
-                {{ ingredient_form.unit_custom.errors }}
+                <label class="block text-brand-dark font-bold mb-2" for="{{ ingredient_form.unit.id_for_label }}">Unit</label>
+                <div class="relative" data-unit-dropdown>
+                    {{ ingredient_form.unit }}
+                    <button type="button" class="unit-dropdown-button" data-unit-dropdown-button>
+                        <span data-unit-selected-label>Select unit</span>
+                        <i class="fa-solid fa-chevron-down text-gray-400"></i>
+                    </button>
+                    <div class="unit-dropdown-menu hidden" data-unit-dropdown-menu>
+                        <button type="button" class="unit-dropdown-action" data-unit-add>
+                            + Add Unit
+                        </button>
+                        <div class="unit-dropdown-list" data-delete-url-template="{% url 'delete_ingredient_unit' 0 %}">
+                            {% for unit in units %}
+                                <div class="unit-dropdown-item">
+                                    <button type="button" class="unit-dropdown-option" data-unit-option data-unit-id="{{ unit.id }}" data-unit-name="{{ unit.name|escapejs }}">
+                                        {{ unit.name }}
+                                    </button>
+                                    <button type="button" class="unit-dropdown-icon unit-dropdown-edit" title="Edit {{ unit.name }}" data-unit-edit data-unit-id="{{ unit.id }}" data-unit-name="{{ unit.name|escapejs }}">
+                                        <i class="fa-solid fa-pen-to-square"></i>
+                                    </button>
+                                    <a href="{% url 'delete_ingredient_unit' unit.id %}"
+                                       class="unit-dropdown-icon unit-dropdown-delete"
+                                       title="Delete {{ unit.name }}"
+                                       data-unit-delete
+                                       data-unit-name="{{ unit.name|escapejs }}">
+                                        <i class="fa-solid fa-trash"></i>
+                                    </a>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+                {{ ingredient_form.unit.errors }}
             </div>
             <div>
                 <label class="block text-brand-dark font-bold mb-2" for="{{ ingredient_form.cost_per_unit.id_for_label }}">Cost per Unit</label>
@@ -334,9 +360,31 @@
         </div>
         <div class="mt-8 flex justify-end gap-3">
             <button type="button" onclick="this.closest('dialog').close()" class="px-5 py-2 text-gray-500 hover:bg-gray-50 rounded-lg font-medium transition">Cancel</button>
-            <button type="submit" class="bg-brand-teal text-white px-6 py-2 rounded-lg font-bold hover:bg-brand-dark transition shadow-md">Save</button>
+            <button type="submit" class="btn-save-primary text-white px-6 py-2 rounded-lg font-bold transition shadow-md">Save</button>
         </div>
     </form>
+    <div class="unit-delete-overlay hidden" data-unit-delete-confirm-box>
+        <div class="unit-delete-confirm">
+            <div class="unit-delete-confirm__title">Delete Unit</div>
+            <div class="unit-delete-confirm__text" data-unit-delete-text></div>
+            <div class="unit-delete-confirm__actions">
+                <button type="button" class="unit-delete-confirm__cancel" data-unit-delete-cancel>Cancel</button>
+                <button type="button" class="unit-delete-confirm__confirm" data-unit-delete-confirm>Delete</button>
+            </div>
+        </div>
+    </div>
+    <div class="unit-delete-overlay hidden" data-unit-rename-confirm-box>
+        <div class="unit-delete-confirm">
+            <div class="unit-delete-confirm__title">Unit In Use</div>
+            <div class="unit-delete-confirm__text" data-unit-rename-text></div>
+            <label class="block text-brand-dark font-bold mb-2 text-sm" for="unit-rename-input-add">Rename To</label>
+            <input id="unit-rename-input-add" type="text" class="form-input mb-3" />
+            <div class="unit-delete-confirm__actions">
+                <button type="button" class="unit-delete-confirm__cancel" data-unit-rename-cancel>Cancel</button>
+                <button type="button" class="unit-delete-confirm__confirm" data-unit-rename-confirm>Save</button>
+            </div>
+        </div>
+    </div>
 </dialog>
 
 <dialog id="modal-ingredient-edit" class="p-0 rounded-xl shadow-2xl backdrop:bg-brand-dark/80 w-full max-w-md open:animate-[fadeIn_0.2s_ease-out]">
@@ -356,12 +404,38 @@
                 {{ edit_ingredient_form.quantity }}
             </div>
             <div>
-                <label class="block text-brand-dark font-bold mb-2" for="{{ edit_ingredient_form.unit_type.id_for_label }}">Unit</label>
-                {{ edit_ingredient_form.unit_type }}
-            </div>
-            <div id="unit-custom-field-edit" class="hidden">
-                <label class="block text-brand-dark font-bold mb-2" for="{{ edit_ingredient_form.unit_custom.id_for_label }}">Custom Unit</label>
-                {{ edit_ingredient_form.unit_custom }}
+                <label class="block text-brand-dark font-bold mb-2" for="{{ edit_ingredient_form.unit.id_for_label }}">Unit</label>
+                <div class="relative" data-unit-dropdown>
+                    {{ edit_ingredient_form.unit }}
+                    <button type="button" class="unit-dropdown-button" data-unit-dropdown-button>
+                        <span data-unit-selected-label>Select unit</span>
+                        <i class="fa-solid fa-chevron-down text-gray-400"></i>
+                    </button>
+                    <div class="unit-dropdown-menu hidden" data-unit-dropdown-menu>
+                        <button type="button" class="unit-dropdown-action" data-unit-add>
+                            + Add Unit
+                        </button>
+                        <div class="unit-dropdown-list" data-delete-url-template="{% url 'delete_ingredient_unit' 0 %}">
+                            {% for unit in units %}
+                                <div class="unit-dropdown-item">
+                                    <button type="button" class="unit-dropdown-option" data-unit-option data-unit-id="{{ unit.id }}" data-unit-name="{{ unit.name|escapejs }}">
+                                        {{ unit.name }}
+                                    </button>
+                                    <button type="button" class="unit-dropdown-icon unit-dropdown-edit" title="Edit {{ unit.name }}" data-unit-edit data-unit-id="{{ unit.id }}" data-unit-name="{{ unit.name|escapejs }}">
+                                        <i class="fa-solid fa-pen-to-square"></i>
+                                    </button>
+                                    <a href="{% url 'delete_ingredient_unit' unit.id %}"
+                                       class="unit-dropdown-icon unit-dropdown-delete"
+                                       title="Delete {{ unit.name }}"
+                                       data-unit-delete
+                                       data-unit-name="{{ unit.name|escapejs }}">
+                                        <i class="fa-solid fa-trash"></i>
+                                    </a>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
             </div>
             <div>
                 <label class="block text-brand-dark font-bold mb-2" for="{{ edit_ingredient_form.cost_per_unit.id_for_label }}">Cost per Unit</label>
@@ -374,7 +448,65 @@
         </div>
         <div class="mt-8 flex justify-end gap-3">
             <button type="button" onclick="this.closest('dialog').close()" class="px-5 py-2 text-gray-500 hover:bg-gray-50 rounded-lg font-medium transition">Cancel</button>
-            <button type="submit" class="bg-brand-teal text-white px-6 py-2 rounded-lg font-bold hover:bg-brand-dark transition shadow-md">Save</button>
+            <button type="submit" class="btn-save-primary text-white px-6 py-2 rounded-lg font-bold transition shadow-md">Save</button>
+        </div>
+    </form>
+    <div class="unit-delete-overlay hidden" data-unit-delete-confirm-box>
+        <div class="unit-delete-confirm">
+            <div class="unit-delete-confirm__title">Delete Unit</div>
+            <div class="unit-delete-confirm__text" data-unit-delete-text></div>
+            <div class="unit-delete-confirm__actions">
+                <button type="button" class="unit-delete-confirm__cancel" data-unit-delete-cancel>Cancel</button>
+                <button type="button" class="unit-delete-confirm__confirm" data-unit-delete-confirm>Delete</button>
+            </div>
+        </div>
+    </div>
+    <div class="unit-delete-overlay hidden" data-unit-rename-confirm-box>
+        <div class="unit-delete-confirm">
+            <div class="unit-delete-confirm__title">Unit In Use</div>
+            <div class="unit-delete-confirm__text" data-unit-rename-text></div>
+            <label class="block text-brand-dark font-bold mb-2 text-sm" for="unit-rename-input-edit">Rename To</label>
+            <input id="unit-rename-input-edit" type="text" class="form-input mb-3" />
+            <div class="unit-delete-confirm__actions">
+                <button type="button" class="unit-delete-confirm__cancel" data-unit-rename-cancel>Cancel</button>
+                <button type="button" class="unit-delete-confirm__confirm" data-unit-rename-confirm>Save</button>
+            </div>
+        </div>
+    </div>
+</dialog>
+
+<dialog id="modal-unit-add" class="p-0 rounded-xl shadow-2xl backdrop:bg-brand-dark/80 w-full max-w-sm open:animate-[fadeIn_0.2s_ease-out]">
+    <div class="bg-brand-dark p-4 border-b border-gray-700 flex justify-between items-center">
+        <h3 class="text-white font-bold text-base">Add Unit</h3>
+        <button onclick="this.closest('dialog').close()" class="text-gray-400 hover:text-white transition"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <form method="POST" action="{% url 'add_ingredient_unit' %}" class="p-5 bg-white" id="unit-add-form">
+        {% csrf_token %}
+        <div>
+            <label class="block text-brand-dark font-bold mb-2" for="{{ unit_form.name.id_for_label }}">Unit Name</label>
+            {{ unit_form.name }}
+        </div>
+        <div class="mt-6 flex justify-end gap-3">
+            <button type="button" onclick="this.closest('dialog').close()" class="px-4 py-2 text-gray-500 hover:bg-gray-50 rounded-lg font-medium transition">Cancel</button>
+            <button type="submit" class="bg-brand-teal text-white px-5 py-2 rounded-lg font-bold hover:bg-brand-dark transition shadow-md">Save</button>
+        </div>
+    </form>
+</dialog>
+
+<dialog id="modal-unit-edit" class="p-0 rounded-xl shadow-2xl backdrop:bg-brand-dark/80 w-full max-w-sm open:animate-[fadeIn_0.2s_ease-out]">
+    <div class="bg-brand-dark p-4 border-b border-gray-700 flex justify-between items-center">
+        <h3 class="text-white font-bold text-base">Edit Unit</h3>
+        <button onclick="this.closest('dialog').close()" class="text-gray-400 hover:text-white transition"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <form method="POST" class="p-5 bg-white" id="unit-edit-form">
+        {% csrf_token %}
+        <div>
+            <label class="block text-brand-dark font-bold mb-2" for="{{ edit_unit_form.name.id_for_label }}">Unit Name</label>
+            {{ edit_unit_form.name }}
+        </div>
+        <div class="mt-6 flex justify-end gap-3">
+            <button type="button" onclick="this.closest('dialog').close()" class="px-4 py-2 text-gray-500 hover:bg-gray-50 rounded-lg font-medium transition">Cancel</button>
+            <button type="submit" class="bg-brand-teal text-white px-5 py-2 rounded-lg font-bold hover:bg-brand-dark transition shadow-md">Save</button>
         </div>
     </form>
 </dialog>
@@ -421,15 +553,6 @@
 </dialog>
 
 <script>
-    function toggleCustomUnitField(selectId, fieldId) {
-        const unitSelect = document.getElementById(selectId);
-        const customField = document.getElementById(fieldId);
-        if (!unitSelect || !customField) return;
-
-        const isOther = unitSelect.value === 'OTHER';
-        customField.classList.toggle('hidden', !isOther);
-    }
-
     function openIngredientEdit(trigger) {
         const modal = document.getElementById('modal-ingredient-edit');
         const form = document.getElementById('ingredient-edit-form');
@@ -439,15 +562,15 @@
         form.action = trigger.dataset.editUrl;
         document.getElementById('{{ edit_ingredient_form.name.id_for_label }}').value = trigger.dataset.name || '';
         document.getElementById('{{ edit_ingredient_form.quantity.id_for_label }}').value = trigger.dataset.quantity || '';
-        document.getElementById('{{ edit_ingredient_form.unit_type.id_for_label }}').value = trigger.dataset.unitType || '';
-        document.getElementById('{{ edit_ingredient_form.unit_custom.id_for_label }}').value = trigger.dataset.unitCustom || '';
+        document.getElementById('{{ edit_ingredient_form.unit.id_for_label }}').value = trigger.dataset.unitId || '';
 
         const amountInput = form.querySelector('input[name$="cost_per_unit_0"]');
         const currencyInput = form.querySelector('[name$="cost_per_unit_1"]');
         if (amountInput) amountInput.value = trigger.dataset.costAmount || '';
         if (currencyInput) currencyInput.value = trigger.dataset.costCurrency || 'USD';
 
-        toggleCustomUnitField('{{ edit_ingredient_form.unit_type.id_for_label }}', 'unit-custom-field-edit');
+        const dropdown = form.querySelector('[data-unit-dropdown]');
+        if (dropdown) updateUnitDropdownLabel(dropdown);
         modal.showModal();
     }
 
@@ -479,26 +602,430 @@
         modal.showModal();
     }
 
-    document.addEventListener('DOMContentLoaded', function() {
-        toggleCustomUnitField('{{ ingredient_form.unit_type.id_for_label }}', 'unit-custom-field');
-        const unitSelect = document.getElementById('{{ ingredient_form.unit_type.id_for_label }}');
-        if (unitSelect) {
-            unitSelect.addEventListener('change', function() {
-                toggleCustomUnitField('{{ ingredient_form.unit_type.id_for_label }}', 'unit-custom-field');
+    function updateUnitDropdownLabel(container) {
+        const select = container.querySelector('select');
+        const label = container.querySelector('[data-unit-selected-label]');
+        if (!select || !label) return;
+
+        const selectedOption = select.options[select.selectedIndex];
+        label.textContent = selectedOption ? selectedOption.text : 'Select unit';
+    }
+
+    let activeUnitDropdown = null;
+
+    function openUnitAdd(container) {
+        activeUnitDropdown = container || null;
+        const modal = document.getElementById('modal-unit-add');
+        const input = document.getElementById('{{ unit_form.name.id_for_label }}');
+        if (input) input.value = '';
+        modal.showModal();
+    }
+
+    function openUnitEdit(unitId, unitName) {
+        const modal = document.getElementById('modal-unit-edit');
+        const form = document.getElementById('unit-edit-form');
+        const input = document.getElementById('{{ edit_unit_form.name.id_for_label }}');
+        if (form) form.action = "{% url 'edit_ingredient_unit' 0 %}".replace('0', unitId);
+        if (input) input.value = unitName || '';
+        modal.showModal();
+    }
+
+    function createUnitItem(unit, deleteUrlTemplate) {
+        const row = document.createElement('div');
+        row.className = 'unit-dropdown-item';
+
+        const optionButton = document.createElement('button');
+        optionButton.type = 'button';
+        optionButton.className = 'unit-dropdown-option';
+        optionButton.dataset.unitOption = '';
+        optionButton.dataset.unitId = unit.id;
+        optionButton.dataset.unitName = unit.name;
+        optionButton.textContent = unit.name;
+
+        const editButton = document.createElement('button');
+        editButton.type = 'button';
+        editButton.className = 'unit-dropdown-icon unit-dropdown-edit';
+        editButton.title = `Edit ${unit.name}`;
+        editButton.dataset.unitEdit = '';
+        editButton.dataset.unitId = unit.id;
+        editButton.dataset.unitName = unit.name;
+        editButton.innerHTML = '<i class="fa-solid fa-pen-to-square"></i>';
+
+        const deleteLink = document.createElement('a');
+        deleteLink.className = 'unit-dropdown-icon unit-dropdown-delete';
+        deleteLink.title = `Delete ${unit.name}`;
+        deleteLink.href = deleteUrlTemplate.replace('0', unit.id);
+        deleteLink.onclick = function() {
+            return confirm(`Delete unit ${unit.name}?`);
+        };
+        deleteLink.innerHTML = '<i class="fa-solid fa-trash"></i>';
+
+        row.appendChild(optionButton);
+        row.appendChild(editButton);
+        row.appendChild(deleteLink);
+
+        return row;
+    }
+
+    function insertUnitOptionSorted(select, unit) {
+        const option = document.createElement('option');
+        option.value = unit.id;
+        option.textContent = unit.name;
+
+        const options = Array.from(select.options);
+        const insertIndex = options.findIndex((existing) => {
+            return existing.text.toLowerCase() > unit.name.toLowerCase();
+        });
+
+        if (insertIndex === -1) {
+            select.add(option);
+        } else {
+            select.add(option, options[insertIndex]);
+        }
+    }
+
+    function insertUnitItemSorted(list, unit, deleteUrlTemplate) {
+        const item = createUnitItem(unit, deleteUrlTemplate);
+        const items = Array.from(list.querySelectorAll('.unit-dropdown-item'));
+        const insertIndex = items.findIndex((existing) => {
+            const label = existing.querySelector('[data-unit-option]')?.textContent || '';
+            return label.toLowerCase() > unit.name.toLowerCase();
+        });
+
+        if (insertIndex === -1) {
+            list.appendChild(item);
+        } else {
+            list.insertBefore(item, items[insertIndex]);
+        }
+    }
+
+    function ensureUnitIcon(button, iconClass) {
+        if (!button) return;
+        button.innerHTML = '';
+        const icon = document.createElement('i');
+        icon.className = `fa-solid ${iconClass}`;
+        button.appendChild(icon);
+    }
+
+    function addUnitToDropdowns(unit) {
+        document.querySelectorAll('[data-unit-dropdown]').forEach((container) => {
+            const select = container.querySelector('select');
+            const list = container.querySelector('.unit-dropdown-list');
+            if (select) insertUnitOptionSorted(select, unit);
+            if (list) insertUnitItemSorted(list, unit, list.dataset.deleteUrlTemplate || '');
+            sortUnitDropdown(container);
+            updateUnitDropdownLabel(container);
+        });
+    }
+
+    function updateUnitInDropdowns(unit) {
+        document.querySelectorAll('[data-unit-dropdown]').forEach((container) => {
+            const select = container.querySelector('select');
+            if (select) {
+                const option = Array.from(select.options).find((opt) => opt.value === String(unit.id));
+                if (option) option.textContent = unit.name;
+            }
+
+            const list = container.querySelector('.unit-dropdown-list');
+            const optionButton = list?.querySelector(`[data-unit-option][data-unit-id="${unit.id}"]`);
+            const editButton = list?.querySelector(`[data-unit-edit][data-unit-id="${unit.id}"]`);
+            if (optionButton) {
+                optionButton.textContent = unit.name;
+                optionButton.dataset.unitName = unit.name;
+            }
+            if (editButton) {
+                editButton.title = `Edit ${unit.name}`;
+                editButton.dataset.unitName = unit.name;
+                ensureUnitIcon(editButton, 'fa-pen-to-square');
+            }
+            const deleteLink = list?.querySelector(`a[href*="/${unit.id}/"]`);
+            if (deleteLink) {
+                deleteLink.title = `Delete ${unit.name}`;
+                ensureUnitIcon(deleteLink, 'fa-trash');
+            }
+
+            sortUnitDropdown(container);
+            updateUnitDropdownLabel(container);
+        });
+    }
+
+    function removeUnitFromDropdowns(unitId) {
+        document.querySelectorAll('[data-unit-dropdown]').forEach((container) => {
+            const select = container.querySelector('select');
+            if (select) {
+                const option = Array.from(select.options).find((opt) => opt.value === String(unitId));
+                if (option) {
+                    const wasSelected = option.selected;
+                    option.remove();
+                    if (wasSelected) {
+                        select.selectedIndex = 0;
+                    }
+                }
+            }
+
+            const list = container.querySelector('.unit-dropdown-list');
+            const optionButton = list?.querySelector(`[data-unit-option][data-unit-id="${unitId}"]`);
+            const item = optionButton?.closest('.unit-dropdown-item');
+            if (item) item.remove();
+
+            updateUnitDropdownLabel(container);
+        });
+    }
+
+    function updateIngredientsUnitDisplay(unitId, unitName) {
+        document.querySelectorAll(`[data-unit-id="${unitId}"]`).forEach((cell) => {
+            cell.textContent = unitName;
+        });
+    }
+
+    function sortUnitDropdown(container) {
+        const select = container.querySelector('select');
+        const list = container.querySelector('.unit-dropdown-list');
+
+        if (select) {
+            const options = Array.from(select.options);
+            options.sort((a, b) => a.text.toLowerCase().localeCompare(b.text.toLowerCase()));
+            select.innerHTML = '';
+            options.forEach((option) => select.add(option));
+        }
+
+        if (list) {
+            const items = Array.from(list.querySelectorAll('.unit-dropdown-item'));
+            items.sort((a, b) => {
+                const aLabel = a.querySelector('[data-unit-option]')?.textContent || '';
+                const bLabel = b.querySelector('[data-unit-option]')?.textContent || '';
+                return aLabel.toLowerCase().localeCompare(bLabel.toLowerCase());
+            });
+            items.forEach((item) => list.appendChild(item));
+
+            items.forEach((item) => {
+                const editButton = item.querySelector('[data-unit-edit]');
+                const deleteButton = item.querySelector('[data-unit-delete]');
+                ensureUnitIcon(editButton, 'fa-pen-to-square');
+                ensureUnitIcon(deleteButton, 'fa-trash');
             });
         }
+    }
+
+    function initUnitDropdown(container) {
+        const button = container.querySelector('[data-unit-dropdown-button]');
+        const menu = container.querySelector('[data-unit-dropdown-menu]');
+        const select = container.querySelector('select');
+        if (!button || !menu || !select) return;
+
+        updateUnitDropdownLabel(container);
+
+        button.addEventListener('click', function() {
+            sortUnitDropdown(container);
+            menu.classList.toggle('hidden');
+        });
+
+        container.addEventListener('click', function(event) {
+            const optionButton = event.target.closest('[data-unit-option]');
+            const editButton = event.target.closest('[data-unit-edit]');
+            const addButton = event.target.closest('[data-unit-add]');
+            const deleteLink = event.target.closest('[data-unit-delete]');
+
+            if (addButton) {
+                menu.classList.add('hidden');
+                openUnitAdd(container);
+                return;
+            }
+
+            if (editButton) {
+                menu.classList.add('hidden');
+                openUnitEdit(editButton.dataset.unitId, editButton.dataset.unitName);
+                return;
+            }
+
+            if (optionButton) {
+                select.value = optionButton.dataset.unitId || '';
+                updateUnitDropdownLabel(container);
+                menu.classList.add('hidden');
+            }
+
+            if (deleteLink) {
+                event.preventDefault();
+                menu.classList.add('hidden');
+                openUnitDeleteConfirm(container, deleteLink.getAttribute('href'), deleteLink.dataset.unitName || '');
+            }
+        });
+
+        document.addEventListener('click', function(event) {
+            if (!container.contains(event.target)) {
+                menu.classList.add('hidden');
+            }
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('[data-unit-dropdown]').forEach(initUnitDropdown);
 
         const addCurrencyInput = document.querySelector('#modal-ingredient [name$="cost_per_unit_1"]');
         if (addCurrencyInput) {
             addCurrencyInput.value = 'USD';
         }
 
-        const editUnitSelect = document.getElementById('{{ edit_ingredient_form.unit_type.id_for_label }}');
-        if (editUnitSelect) {
-            editUnitSelect.addEventListener('change', function() {
-                toggleCustomUnitField('{{ edit_ingredient_form.unit_type.id_for_label }}', 'unit-custom-field-edit');
+        const unitAddForm = document.getElementById('unit-add-form');
+        if (unitAddForm) {
+            unitAddForm.addEventListener('submit', async function(event) {
+                event.preventDefault();
+                const formData = new FormData(unitAddForm);
+                const response = await fetch(unitAddForm.action, {
+                    method: 'POST',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/json',
+                    },
+                    body: formData,
+                });
+
+                if (response.ok) {
+                    const unit = await response.json();
+                    addUnitToDropdowns(unit);
+                    if (activeUnitDropdown) {
+                        const select = activeUnitDropdown.querySelector('select');
+                        if (select) {
+                            select.value = String(unit.id);
+                        }
+                        updateUnitDropdownLabel(activeUnitDropdown);
+                    }
+                    document.getElementById('modal-unit-add').close();
+                } else {
+                    const data = await response.json();
+                    alert('Unable to add unit. ' + JSON.stringify(data.errors || {}));
+                }
+            });
+        }
+
+        const unitEditForm = document.getElementById('unit-edit-form');
+        if (unitEditForm) {
+            unitEditForm.addEventListener('submit', async function(event) {
+                event.preventDefault();
+                const formData = new FormData(unitEditForm);
+                const response = await fetch(unitEditForm.action, {
+                    method: 'POST',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/json',
+                    },
+                    body: formData,
+                });
+
+                if (response.ok) {
+                    const unit = await response.json();
+                    updateUnitInDropdowns(unit);
+                    document.getElementById('modal-unit-edit').close();
+                } else {
+                    const data = await response.json();
+                    alert('Unable to update unit. ' + JSON.stringify(data.errors || {}));
+                }
             });
         }
     });
+
+    function openUnitDeleteConfirm(container, deleteUrl, unitName) {
+        const modal = container.closest('dialog');
+        const confirmBox = modal?.querySelector('[data-unit-delete-confirm-box]');
+        const textEl = modal?.querySelector('[data-unit-delete-text]');
+        if (!confirmBox || !textEl) return;
+
+        confirmBox.dataset.deleteUrl = deleteUrl;
+        confirmBox.dataset.unitId = deleteUrl?.match(/\/(\d+)\/?$/)?.[1] || '';
+        textEl.textContent = `Delete unit ${unitName}?`;
+        confirmBox.classList.remove('hidden');
+    }
+
+    document.addEventListener('click', function(event) {
+        const cancelBtn = event.target.closest('[data-unit-delete-cancel]');
+        const confirmBtn = event.target.closest('[data-unit-delete-confirm]');
+        if (cancelBtn) {
+            const box = cancelBtn.closest('[data-unit-delete-confirm-box]');
+            if (box) box.classList.add('hidden');
+            return;
+        }
+
+        if (confirmBtn) {
+            const box = confirmBtn.closest('[data-unit-delete-confirm-box]');
+            const deleteUrl = box?.dataset.deleteUrl;
+            const unitId = box?.dataset.unitId;
+            if (deleteUrl) {
+                fetch(deleteUrl, {
+                    method: 'POST',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/json',
+                        'X-CSRFToken': '{{ csrf_token }}',
+                    },
+                }).then(async (response) => {
+                    if (response.ok) {
+                        if (unitId) {
+                            removeUnitFromDropdowns(unitId);
+                        }
+                        box.classList.add('hidden');
+                    } else {
+                        const data = await response.json();
+                        if (data.error === 'Unit is in use.') {
+                            box.classList.add('hidden');
+                            openUnitRenameConfirm(box.closest('dialog'), unitId);
+                        } else {
+                            alert(data.error || 'Unable to delete unit.');
+                        }
+                    }
+                });
+            }
+        }
+
+        const renameCancel = event.target.closest('[data-unit-rename-cancel]');
+        if (renameCancel) {
+            const box = renameCancel.closest('[data-unit-rename-confirm-box]');
+            if (box) box.classList.add('hidden');
+            return;
+        }
+
+        const renameConfirm = event.target.closest('[data-unit-rename-confirm]');
+        if (renameConfirm) {
+            const box = renameConfirm.closest('[data-unit-rename-confirm-box]');
+            const unitId = box?.dataset.unitId;
+            const input = box?.querySelector('input');
+            const newName = input?.value?.trim();
+            if (!unitId || !newName) return;
+
+            fetch("{% url 'edit_ingredient_unit' 0 %}".replace('0', unitId), {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}',
+                },
+                body: new URLSearchParams({
+                    '{{ edit_unit_form.name.html_name }}': newName,
+                }),
+            }).then(async (response) => {
+                if (response.ok) {
+                    const unit = await response.json();
+                    updateUnitInDropdowns(unit);
+                    updateIngredientsUnitDisplay(unit.id, unit.name);
+                    box.classList.add('hidden');
+                } else {
+                    const data = await response.json();
+                    alert('Unable to rename unit. ' + JSON.stringify(data.errors || {}));
+                }
+            });
+        }
+    });
+
+    function openUnitRenameConfirm(modal, unitId) {
+        const box = modal?.querySelector('[data-unit-rename-confirm-box]');
+        const textEl = modal?.querySelector('[data-unit-rename-text]');
+        const input = box?.querySelector('input');
+        if (!box || !textEl || !input) return;
+
+        box.dataset.unitId = unitId || '';
+        textEl.textContent = 'This unit is in use. Rename it to keep existing ingredients updated.';
+        input.value = '';
+        box.classList.remove('hidden');
+        input.focus();
+    }
 </script>
 {% endblock %}

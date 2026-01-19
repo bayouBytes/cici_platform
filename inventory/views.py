@@ -1,11 +1,19 @@
 from django.shortcuts import render, redirect, get_object_or_404
+from django.http import JsonResponse
 from django.contrib.admin.views.decorators import staff_member_required
 
 # CORRECT: Import Meal from local models (Inventory), NOT Store
-from .models import Ingredient, Recipe, Meal
+from .models import Ingredient, IngredientUnit, Recipe, Meal
 from store.models import MenuItem, MenuWeek
 
-from .forms import IngredientForm, RecipeForm, RecipeIngredientFormSet, MealForm, MealRecipeFormSet
+from .forms import (
+    IngredientForm,
+    IngredientUnitForm,
+    RecipeForm,
+    RecipeIngredientFormSet,
+    MealForm,
+    MealRecipeFormSet,
+)
 from store.forms import MenuItemForm 
 
   
@@ -22,6 +30,9 @@ def chef_dashboard(request):
         # Pass empty forms for the 'Add' modals
         'ingredient_form': IngredientForm(),
         'edit_ingredient_form': IngredientForm(prefix='edit'),
+        'unit_form': IngredientUnitForm(prefix='unit'),
+        'edit_unit_form': IngredientUnitForm(prefix='unit-edit'),
+        'units': IngredientUnit.objects.all(),
         'menu_item_form': MenuItemForm(initial={'menu_week': active_week}),
         'meals': Meal.objects.all(),
     }
@@ -53,6 +64,43 @@ def delete_ingredient(request, ingredient_id):
     return redirect('chef_dashboard')
 
 @staff_member_required
+def delete_ingredient_unit(request, unit_id):
+    unit = get_object_or_404(IngredientUnit, id=unit_id)
+    if Ingredient.objects.filter(unit=unit).exists():
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+            return JsonResponse({'error': 'Unit is in use.'}, status=400)
+        return redirect('chef_dashboard')
+    unit.delete()
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        return JsonResponse({'id': unit_id})
+    return redirect('chef_dashboard')
+
+@staff_member_required
+def add_ingredient_unit(request):
+    if request.method == 'POST':
+        form = IngredientUnitForm(request.POST, prefix='unit')
+        if form.is_valid():
+            unit = form.save()
+            if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+                return JsonResponse({'id': unit.id, 'name': unit.name})
+        elif request.headers.get('x-requested-with') == 'XMLHttpRequest':
+            return JsonResponse({'errors': form.errors}, status=400)
+    return redirect('chef_dashboard')
+
+@staff_member_required
+def edit_ingredient_unit(request, unit_id):
+    unit = get_object_or_404(IngredientUnit, id=unit_id)
+    if request.method == 'POST':
+        form = IngredientUnitForm(request.POST, instance=unit, prefix='unit-edit')
+        if form.is_valid():
+            unit = form.save()
+            if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+                return JsonResponse({'id': unit.id, 'name': unit.name})
+        elif request.headers.get('x-requested-with') == 'XMLHttpRequest':
+            return JsonResponse({'errors': form.errors}, status=400)
+    return redirect('chef_dashboard')
+
+@staff_member_required
 def manage_recipe(request, recipe_id=None):
     """
     Handles both creating NEW recipes and EDITING existing ones.
@@ -80,7 +128,9 @@ def manage_recipe(request, recipe_id=None):
     return render(request, 'inventory/recipe_editor.html', {
         'form': form,
         'formset': formset,
-        'title': title
+        'title': title,
+        'ingredients': Ingredient.objects.order_by('name'),
+        'units': IngredientUnit.objects.order_by('name'),
     })
 
 @staff_member_required
