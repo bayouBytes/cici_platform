@@ -35,9 +35,292 @@ form textarea:focus {
     box-shadow: 0 0 0 3px rgba(88, 167, 166, 0.2);
 }
 
+.btn-save-primary {
+    background-color: #72C4E2;
+}
+
+.btn-save-primary:hover {
+    background-color: #72C4E2;
+}
+
+/* Unit dropdown styling */
+.unit-dropdown-button {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    text-align: left;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.375rem;
+    background-color: #fff;
+    color: #111827;
+    cursor: pointer;
+}
+
+.unit-dropdown-button:focus {
+    outline: none;
+    border-color: #58A7A6; /* Brand Teal */
+    box-shadow: 0 0 0 3px rgba(88, 167, 166, 0.2);
+}
+
+.unit-dropdown-menu {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: calc(100% + 0.25rem);
+    z-index: 20;
+    background: #fff;
+    border: 1px solid #58A7A6; /* Brand Teal */
+    border-radius: 0.5rem;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+    overflow: hidden;
+}
+
+.unit-dropdown-action {
+    width: 100%;
+    text-align: left;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: #58A7A6; /* Brand Teal */
+    background: #fff;
+    border: none;
+    cursor: pointer;
+}
+
+.unit-dropdown-action:hover {
+    background: #f9fafb;
+}
+
+.unit-dropdown-list {
+    max-height: 14rem;
+    overflow-y: auto;
+}
+
+.unit-dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+}
+
+.unit-dropdown-item:hover {
+    background: #f9fafb;
+}
+
+.unit-dropdown-option {
+    flex: 1;
+    text-align: left;
+    font-size: 0.875rem;
+    color: #374151;
+    background: transparent;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+}
+
+.unit-dropdown-icon,
+.unit-dropdown-icon i {
+    color: #0f2e3d; /* Brand dark teal */
+    transition: color 0.15s ease;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+}
+
+.unit-dropdown-icon {
+    width: 28px;
+    height: 28px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+}
+
+.unit-dropdown-icon i {
+    font-size: 0.875rem;
+}
+
+.unit-dropdown-edit:hover,
+.unit-dropdown-edit:hover i {
+    color: #58A7A6; /* Brand Teal */
+}
+
+.unit-dropdown-delete:hover,
+.unit-dropdown-delete:hover i {
+    color: #ef4444;
+}
+
 /* Helper for Dialog Animation */
 dialog[open] {
     animation: fadeIn 0.2s ease-out;
+}
+
+/* Allow dropdown overlays without dialog scrollbars */
+#modal-ingredient,
+#modal-ingredient-edit {
+    overflow: visible;
+}
+
+.unit-dropdown-menu {
+    max-height: min(18rem, 60vh);
+}
+
+/* Ingredient dropdown styling */
+.ingredient-dropdown-button {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    text-align: left;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.375rem;
+    background-color: #fff;
+    color: #111827;
+    cursor: pointer;
+}
+
+.ingredient-dropdown-cell {
+    position: relative;
+    overflow: visible;
+}
+
+.ingredient-dropdown-container {
+    position: relative;
+}
+
+.ingredient-dropdown-button:focus {
+    outline: none;
+    border-color: #58A7A6; /* Brand Teal */
+    box-shadow: 0 0 0 3px rgba(88, 167, 166, 0.2);
+}
+
+.ingredient-dropdown-menu {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: calc(100% + 0.25rem);
+    z-index: 20;
+    background: #fff;
+    border: 1px solid #58A7A6; /* Brand Teal */
+    border-radius: 0.5rem;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+    overflow: hidden;
+}
+
+.recipe-form-card {
+    position: relative;
+    overflow: visible;
+}
+
+.ingredient-table-wrapper {
+    overflow: visible;
+}
+
+.ingredient-dropdown-input {
+    padding: 0.5rem 0.75rem;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.ingredient-dropdown-list {
+    max-height: 14rem;
+    overflow-y: auto;
+}
+
+.ingredient-dropdown-item {
+    padding: 0.5rem 0.75rem;
+}
+
+.ingredient-dropdown-item:hover {
+    background: #f9fafb;
+}
+
+.ingredient-dropdown-option {
+    width: 100%;
+    text-align: left;
+    font-size: 0.875rem;
+    color: #374151;
+    background: transparent;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+}
+
+.ingredient-dropdown-action {
+    width: 100%;
+    text-align: left;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: #58A7A6; /* Brand Teal */
+    background: #fff;
+    border: none;
+    cursor: pointer;
+}
+
+.ingredient-dropdown-action:hover {
+    background: #f9fafb;
+}
+
+.unit-delete-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(7, 27, 38, 0.25);
+    z-index: 40;
+}
+
+.unit-delete-confirm {
+    width: 280px;
+    background: #fff;
+    border: 1px solid #58A7A6; /* Brand Teal */
+    border-radius: 0.75rem;
+    box-shadow: 0 12px 30px rgba(7, 27, 38, 0.2);
+    padding: 1rem;
+}
+
+.unit-delete-confirm__title {
+    font-weight: 700;
+    color: #071B26; /* Brand Dark */
+    margin-bottom: 0.35rem;
+}
+
+.unit-delete-confirm__text {
+    font-size: 0.875rem;
+    color: #4b5563;
+    margin-bottom: 0.75rem;
+}
+
+.unit-delete-confirm__actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+}
+
+.unit-delete-confirm__cancel {
+    padding: 0.35rem 0.75rem;
+    border-radius: 0.5rem;
+    background: #f9fafb;
+    color: #6b7280;
+    border: 1px solid #e5e7eb;
+    font-weight: 600;
+}
+
+.unit-delete-confirm__confirm {
+    padding: 0.35rem 0.75rem;
+    border-radius: 0.5rem;
+    background: #ef4444;
+    color: #fff;
+    border: none;
+    font-weight: 600;
 }
 
 @keyframes fadeIn {
