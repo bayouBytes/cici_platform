@@ -43,8 +43,17 @@ def add_ingredient(request):
     if request.method == 'POST':
         form = IngredientForm(request.POST)
         if form.is_valid():
-            form.save()
+            ingredient = form.save()
+            if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+                return JsonResponse({
+                    'id': ingredient.id,
+                    'name': ingredient.name,
+                    'unit': ingredient.unit.name,
+                    'cost_per_unit_amount': str(ingredient.cost_per_unit.amount),
+                })
         else:
+            if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+                return JsonResponse({'errors': form.errors}, status=400)
             print(form.errors)  # Add this to see why it failed in your console
     return redirect('chef_dashboard')
 

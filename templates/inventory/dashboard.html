@@ -22,7 +22,7 @@
 
 <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
     
-    <div class="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden flex flex-col h-full">
+    <div class="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden flex flex-col h-full ingredient-card relative">
         <div class="bg-brand-dark p-5 flex justify-between items-center border-b-4 border-brand-teal">
             <h3 class="text-brand-light font-bold text-lg tracking-wide"><i class="fa-solid fa-box-open mr-2 text-brand-teal"></i> Ingredients</h3>
             <button onclick="document.getElementById('modal-ingredient').showModal()" 
@@ -82,7 +82,8 @@
                             <a href="{% url 'delete_ingredient' ing.id %}"
                                class="text-gray-400 hover:text-red-500 transition"
                                title="Delete"
-                               onclick="return confirm('Delete {{ ing.name|escapejs }}?')">
+                               data-ingredient-delete
+                               data-ingredient-name="{{ ing.name|escapejs }}">
                                 <i class="fa-solid fa-trash"></i>
                             </a>
                         </td>
@@ -92,10 +93,20 @@
                     {% endfor %}
                 </tbody>
             </table>
+            <div class="unit-delete-overlay hidden" data-ingredient-delete-confirm-box>
+                <div class="unit-delete-confirm">
+                    <div class="unit-delete-confirm__title">Delete Ingredient</div>
+                    <div class="unit-delete-confirm__text" data-ingredient-delete-text></div>
+                    <div class="unit-delete-confirm__actions">
+                        <button type="button" class="unit-delete-confirm__cancel" data-ingredient-delete-cancel>Cancel</button>
+                        <button type="button" class="unit-delete-confirm__confirm" data-ingredient-delete-confirm>Delete</button>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
-    <div class="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden flex flex-col h-full">
+    <div class="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden flex flex-col h-full recipe-card relative">
         <div class="bg-brand-dark p-5 flex justify-between items-center border-b-4 border-brand-teal">
             <h3 class="text-brand-light font-bold text-lg tracking-wide"><i class="fa-solid fa-book-open mr-2 text-brand-teal"></i> Recipes</h3>
             <a href="{% url 'add_recipe' %}" class="bg-brand-teal text-brand-dark hover:bg-white hover:text-brand-dark text-xs uppercase tracking-wider px-3 py-2 rounded font-bold transition shadow-md">
@@ -153,7 +164,13 @@
 
                         <td class="px-6 py-3 text-right space-x-3">
                             <a href="{% url 'edit_recipe' recipe.id %}" class="text-gray-400 hover:text-brand-teal transition" title="Edit"><i class="fa-solid fa-pen-to-square"></i></a>
-                            <a href="{% url 'delete_recipe' recipe.id %}" class="text-gray-400 hover:text-red-500 transition" onclick="return confirm('Delete {{ recipe.name }}?')" title="Delete"><i class="fa-solid fa-trash"></i></a>
+                            <a href="{% url 'delete_recipe' recipe.id %}"
+                               class="text-gray-400 hover:text-red-500 transition"
+                               title="Delete"
+                               data-recipe-delete
+                               data-recipe-name="{{ recipe.name|escapejs }}">
+                                <i class="fa-solid fa-trash"></i>
+                            </a>
                         </td>
                     </tr>
                     {% empty %}
@@ -161,10 +178,20 @@
                     {% endfor %}
                 </tbody>
             </table>
+            <div class="unit-delete-overlay hidden" data-recipe-delete-confirm-box>
+                <div class="unit-delete-confirm">
+                    <div class="unit-delete-confirm__title">Delete Recipe</div>
+                    <div class="unit-delete-confirm__text" data-recipe-delete-text></div>
+                    <div class="unit-delete-confirm__actions">
+                        <button type="button" class="unit-delete-confirm__cancel" data-recipe-delete-cancel>Cancel</button>
+                        <button type="button" class="unit-delete-confirm__confirm" data-recipe-delete-confirm>Delete</button>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
-    <div class="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden flex flex-col h-full mt-8 lg:mt-0 lg:col-span-2">
+    <div class="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden flex flex-col h-full mt-8 lg:mt-0 lg:col-span-2 meal-card relative">
     <div class="bg-brand-dark p-5 flex justify-between items-center border-b-4 border-brand-teal">
         <h3 class="text-brand-light font-bold text-lg tracking-wide"><i class="fa-solid fa-utensils mr-2 text-brand-teal"></i> Meals</h3>
         <a href="{% url 'add_meal' %}" class="bg-brand-teal text-brand-dark hover:bg-white hover:text-brand-dark text-xs uppercase tracking-wider px-3 py-2 rounded font-bold transition shadow-md">
@@ -222,7 +249,12 @@
 
                     <td class="px-6 py-4 text-center align-middle space-x-3">
                         <a href="{% url 'edit_meal' meal.id %}" class="text-gray-400 hover:text-brand-teal transition inline-block"><i class="fa-solid fa-pen-to-square fa-lg"></i></a>
-                        <a href="{% url 'delete_meal' meal.id %}" class="text-gray-400 hover:text-red-500 transition inline-block" onclick="return confirm('Delete Meal?')"><i class="fa-solid fa-trash fa-lg"></i></a>
+                        <a href="{% url 'delete_meal' meal.id %}"
+                           class="text-gray-400 hover:text-red-500 transition inline-block"
+                           data-meal-delete
+                           data-meal-name="{{ meal.name|escapejs }}">
+                            <i class="fa-solid fa-trash fa-lg"></i>
+                        </a>
                     </td>
                 </tr>
                 {% empty %}
@@ -230,6 +262,16 @@
                 {% endfor %}
             </tbody>
         </table>
+        <div class="unit-delete-overlay hidden" data-meal-delete-confirm-box>
+            <div class="unit-delete-confirm">
+                <div class="unit-delete-confirm__title">Delete Meal</div>
+                <div class="unit-delete-confirm__text" data-meal-delete-text></div>
+                <div class="unit-delete-confirm__actions">
+                    <button type="button" class="unit-delete-confirm__cancel" data-meal-delete-cancel>Cancel</button>
+                    <button type="button" class="unit-delete-confirm__confirm" data-meal-delete-confirm>Delete</button>
+                </div>
+            </div>
+        </div>
     </div>
     </div>
     <div class="lg:col-span-2 bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
@@ -602,6 +644,39 @@
         modal.showModal();
     }
 
+    function openRecipeDeleteConfirm(trigger) {
+        const card = trigger.closest('.recipe-card');
+        const confirmBox = card?.querySelector('[data-recipe-delete-confirm-box]');
+        const textEl = card?.querySelector('[data-recipe-delete-text]');
+        if (!confirmBox || !textEl) return;
+
+        confirmBox.dataset.deleteUrl = trigger.getAttribute('href');
+        textEl.textContent = `Delete ${trigger.dataset.recipeName || 'this recipe'}?`;
+        confirmBox.classList.remove('hidden');
+    }
+
+    function openIngredientDeleteConfirm(trigger) {
+        const card = trigger.closest('.ingredient-card');
+        const confirmBox = card?.querySelector('[data-ingredient-delete-confirm-box]');
+        const textEl = card?.querySelector('[data-ingredient-delete-text]');
+        if (!confirmBox || !textEl) return;
+
+        confirmBox.dataset.deleteUrl = trigger.getAttribute('href');
+        textEl.textContent = `Delete ${trigger.dataset.ingredientName || 'this ingredient'}?`;
+        confirmBox.classList.remove('hidden');
+    }
+
+    function openMealDeleteConfirm(trigger) {
+        const card = trigger.closest('.meal-card');
+        const confirmBox = card?.querySelector('[data-meal-delete-confirm-box]');
+        const textEl = card?.querySelector('[data-meal-delete-text]');
+        if (!confirmBox || !textEl) return;
+
+        confirmBox.dataset.deleteUrl = trigger.getAttribute('href');
+        textEl.textContent = `Delete ${trigger.dataset.mealName || 'this meal'}?`;
+        confirmBox.classList.remove('hidden');
+    }
+
     function updateUnitDropdownLabel(container) {
         const select = container.querySelector('select');
         const label = container.querySelector('[data-unit-selected-label]');
@@ -937,6 +1012,78 @@
     }
 
     document.addEventListener('click', function(event) {
+        const ingredientDelete = event.target.closest('[data-ingredient-delete]');
+        if (ingredientDelete) {
+            event.preventDefault();
+            openIngredientDeleteConfirm(ingredientDelete);
+            return;
+        }
+
+        const ingredientCancel = event.target.closest('[data-ingredient-delete-cancel]');
+        if (ingredientCancel) {
+            const box = ingredientCancel.closest('[data-ingredient-delete-confirm-box]');
+            if (box) box.classList.add('hidden');
+            return;
+        }
+
+        const ingredientConfirm = event.target.closest('[data-ingredient-delete-confirm]');
+        if (ingredientConfirm) {
+            const box = ingredientConfirm.closest('[data-ingredient-delete-confirm-box]');
+            const deleteUrl = box?.dataset.deleteUrl;
+            if (deleteUrl) {
+                window.location.href = deleteUrl;
+            }
+            return;
+        }
+
+        const recipeDelete = event.target.closest('[data-recipe-delete]');
+        if (recipeDelete) {
+            event.preventDefault();
+            openRecipeDeleteConfirm(recipeDelete);
+            return;
+        }
+
+        const recipeCancel = event.target.closest('[data-recipe-delete-cancel]');
+        if (recipeCancel) {
+            const box = recipeCancel.closest('[data-recipe-delete-confirm-box]');
+            if (box) box.classList.add('hidden');
+            return;
+        }
+
+        const recipeConfirm = event.target.closest('[data-recipe-delete-confirm]');
+        if (recipeConfirm) {
+            const box = recipeConfirm.closest('[data-recipe-delete-confirm-box]');
+            const deleteUrl = box?.dataset.deleteUrl;
+            if (deleteUrl) {
+                window.location.href = deleteUrl;
+            }
+            return;
+        }
+
+        const mealDelete = event.target.closest('[data-meal-delete]');
+        if (mealDelete) {
+            event.preventDefault();
+            openMealDeleteConfirm(mealDelete);
+            return;
+        }
+
+        const mealCancel = event.target.closest('[data-meal-delete-cancel]');
+        if (mealCancel) {
+            const box = mealCancel.closest('[data-meal-delete-confirm-box]');
+            if (box) box.classList.add('hidden');
+            return;
+        }
+
+        const mealConfirm = event.target.closest('[data-meal-delete-confirm]');
+        if (mealConfirm) {
+            const box = mealConfirm.closest('[data-meal-delete-confirm-box]');
+            const deleteUrl = box?.dataset.deleteUrl;
+            if (deleteUrl) {
+                window.location.href = deleteUrl;
+            }
+            return;
+        }
+
         const cancelBtn = event.target.closest('[data-unit-delete-cancel]');
         const confirmBtn = event.target.closest('[data-unit-delete-confirm]');
         if (cancelBtn) {
