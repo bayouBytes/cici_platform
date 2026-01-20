@@ -170,10 +170,18 @@ def manage_meal(request, meal_id=None):
         form = MealForm(instance=meal)
         formset = MealRecipeFormSet(instance=meal)
 
+    recipe_costs = {
+        recipe.id: str(recipe.calculate_cost().amount)
+        for recipe in Recipe.objects.order_by('name')
+    }
+    total_cost = meal.calculate_cost() if meal_id else None
+
     return render(request, 'inventory/meal_editor.html', {
         'form': form,
         'formset': formset,
-        'title': title
+        'title': title,
+        'recipe_costs': recipe_costs,
+        'total_cost': total_cost,
     })
 
 @staff_member_required
