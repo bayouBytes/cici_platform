@@ -36,11 +36,50 @@ form textarea:focus {
 }
 
 .btn-save-primary {
-    background-color: #72C4E2;
+    background-color: #58A7A6 !important;
 }
 
 .btn-save-primary:hover {
-    background-color: #72C4E2;
+    background-color: #58A7A6 !important;
+}
+
+/* Dashboard table sizing */
+.dashboard-table {
+    height: 420px;
+    max-height: 420px;
+    overflow-y: auto;
+}
+
+.dashboard-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    background: #f9fafb;
+}
+
+/* Recipe ingredient hover tooltip */
+.recipe-ingredients-cell {
+    position: relative;
+}
+
+.recipe-ingredients-tooltip {
+    position: absolute;
+    left: 0;
+    top: calc(100% + 6px);
+    min-width: 260px;
+    max-width: 320px;
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.5rem;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.12);
+    padding: 0.5rem;
+    display: none;
+    z-index: 30;
+    white-space: normal;
+}
+
+.recipe-ingredients-cell:hover .recipe-ingredients-tooltip {
+    display: block;
 }
 
 /* Unit dropdown styling */

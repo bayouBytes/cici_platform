@@ -24,13 +24,17 @@
     
     <div class="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden flex flex-col h-full ingredient-card relative">
         <div class="bg-brand-dark p-5 flex justify-between items-center border-b-4 border-brand-teal">
-            <h3 class="text-brand-light font-bold text-lg tracking-wide"><i class="fa-solid fa-box-open mr-2 text-brand-teal"></i> Ingredients</h3>
+            <h3 class="text-brand-light font-bold text-lg tracking-wide">
+                <i class="fa-solid fa-box-open mr-2 text-brand-teal"></i>
+                Ingredients
+                <span class="ml-2 text-xs font-semibold text-brand-teal">Total {{ ingredient_total_value }}</span>
+            </h3>
             <button onclick="document.getElementById('modal-ingredient').showModal()" 
                     class="bg-brand-teal text-brand-dark hover:bg-white hover:text-brand-dark text-xs uppercase tracking-wider px-3 py-2 rounded font-bold transition shadow-md">
                 + Add New
             </button>
         </div>
-        <div class="p-0 overflow-x-auto flex-grow">
+        <div class="p-0 overflow-x-auto flex-grow dashboard-table">
             <table class="w-full text-left text-sm">
                 <thead class="bg-gray-50 text-gray-500 uppercase tracking-wider text-xs">
                     <tr>
@@ -38,6 +42,7 @@
                         <th class="px-6 py-3 font-semibold text-brand-teal">In Stock</th>
                         <th class="px-6 py-3 font-semibold text-brand-teal">Unit</th>
                         <th class="px-6 py-3 text-right font-semibold text-brand-teal">Cost / Unit</th>
+                        <th class="px-6 py-3 text-right font-semibold text-brand-teal">Total Cost</th>
                         <th class="px-6 py-3 text-right font-semibold text-brand-teal">Actions</th>
                     </tr>
                 </thead>
@@ -65,6 +70,9 @@
                         </td>
                         <td class="px-6 py-3 text-right text-gray-600 font-mono">
                             {{ ing.cost_per_unit }}
+                        </td>
+                        <td class="px-6 py-3 text-right text-gray-600 font-mono">
+                            {{ ing.total_cost }}
                         </td>
                         <td class="px-6 py-3 text-right space-x-3">
                             <button type="button"
@@ -113,7 +121,7 @@
                 + Build Recipe
             </a>
         </div>
-        <div class="p-0 flex-grow">
+        <div class="p-0 flex-grow dashboard-table">
             <table class="w-full text-left text-sm">
                 <thead class="bg-gray-50 text-gray-500 uppercase tracking-wider text-xs">
                     <tr>
@@ -126,28 +134,40 @@
                 </thead>
                 <tbody class="divide-y divide-gray-100">
                     {% for recipe in recipes %}
-                    <tr class="hover:bg-brand-light/50 transition">
+                    <tr class="hover:bg-brand-light/50 transition cursor-pointer" onclick="window.location.href='{% url 'edit_recipe' recipe.id %}'">
                         <td class="px-6 py-3 font-medium text-brand-dark">
                             <a href="{% url 'edit_recipe' recipe.id %}" class="hover:text-brand-teal hover:underline transition">
                                 {{ recipe.name }}
                             </a>
                         </td>
-                        <td class="px-6 py-3 text-gray-600 text-xs max-w-[260px]" title="{% for ri in recipe.recipe_ingredients.all %}{{ ri.display_name }} ({{ ri.quantity }} {{ ri.display_unit }}){% if ri.missing_amount and ri.missing_amount != 0 %} (missing {{ ri.missing_amount|floatformat:2 }}{% if ri.display_unit %} {{ ri.display_unit }}{% endif %}){% endif %}{% if not forloop.last %}, {% endif %}{% endfor %}">
-                            {% with total=recipe.recipe_ingredients.count %}
-                                {% for ri in recipe.recipe_ingredients.all|slice:":3" %}
-                                    <span class="inline-block border rounded-full px-2 py-0.5 mr-1 mb-1 {% if ri.is_in_stock %}bg-green-50 border-green-200 text-green-700{% else %}bg-red-50 border-red-200 text-red-700{% endif %}">
-                                        {{ ri.display_name }} ({{ ri.quantity }}{% if ri.display_unit %} {{ ri.display_unit }}{% endif %})
-                                        {% if not ri.is_in_stock %}
-                                            (missing {{ ri.missing_amount|floatformat:2 }}{% if ri.display_unit %} {{ ri.display_unit }}{% endif %})
-                                        {% endif %}
-                                    </span>
-                                {% endfor %}
-                                {% if total > 3 %}
-                                    <span class="inline-block text-gray-400 text-[10px] font-semibold uppercase tracking-wide align-middle">
-                                        +{{ total|add:"-3" }} more
-                                    </span>
-                                {% endif %}
-                            {% endwith %}
+                        <td class="px-6 py-3 text-gray-600 text-xs max-w-[260px]">
+                            <div class="recipe-ingredients-cell">
+                                {% with total=recipe.recipe_ingredients.count %}
+                                    {% for ri in recipe.recipe_ingredients.all|slice:":3" %}
+                                        <span class="inline-block border rounded-full px-2 py-0.5 mr-1 mb-1 {% if ri.is_in_stock %}bg-green-50 border-green-200 text-green-700{% else %}bg-red-50 border-red-200 text-red-700{% endif %}">
+                                            {{ ri.display_name }} ({{ ri.quantity }}{% if ri.display_unit %} {{ ri.display_unit }}{% endif %})
+                                            {% if not ri.is_in_stock %}
+                                                (missing {{ ri.missing_amount|floatformat:2 }}{% if ri.display_unit %} {{ ri.display_unit }}{% endif %})
+                                            {% endif %}
+                                        </span>
+                                    {% endfor %}
+                                    {% if total > 3 %}
+                                        <span class="inline-block text-gray-400 text-[10px] font-semibold uppercase tracking-wide align-middle">
+                                            +{{ total|add:"-3" }} more
+                                        </span>
+                                    {% endif %}
+                                {% endwith %}
+                                <div class="recipe-ingredients-tooltip">
+                                    {% for ri in recipe.recipe_ingredients.all %}
+                                        <span class="inline-block border rounded-full px-2 py-0.5 mr-1 mb-1 {% if ri.is_in_stock %}bg-green-50 border-green-200 text-green-700{% else %}bg-red-50 border-red-200 text-red-700{% endif %}">
+                                            {{ ri.display_name }} ({{ ri.quantity }}{% if ri.display_unit %} {{ ri.display_unit }}{% endif %})
+                                            {% if not ri.is_in_stock %}
+                                                (missing {{ ri.missing_amount|floatformat:2 }}{% if ri.display_unit %} {{ ri.display_unit }}{% endif %})
+                                            {% endif %}
+                                        </span>
+                                    {% endfor %}
+                                </div>
+                            </div>
                         </td>
                         <td class="px-6 py-3 text-gray-600 font-mono">{{ recipe.calculate_cost }}</td>
                         
@@ -198,7 +218,7 @@
             + Build Meal
         </a>
     </div>
-    <div class="p-0 flex-grow">
+    <div class="p-0 flex-grow dashboard-table">
         <table class="w-full text-left text-sm">
             <thead class="bg-gray-50 text-gray-500 uppercase tracking-wider text-xs">
                 <tr>
@@ -402,7 +422,7 @@
         </div>
         <div class="mt-8 flex justify-end gap-3">
             <button type="button" onclick="this.closest('dialog').close()" class="px-5 py-2 text-gray-500 hover:bg-gray-50 rounded-lg font-medium transition">Cancel</button>
-            <button type="submit" class="btn-save-primary text-white px-6 py-2 rounded-lg font-bold transition shadow-md">Save</button>
+            <button type="submit" class="btn-save-primary text-white px-6 py-2 rounded-lg font-bold transition shadow-md" style="background-color: #58A7A6 !important;">Save</button>
         </div>
     </form>
     <div class="unit-delete-overlay hidden" data-unit-delete-confirm-box>
@@ -490,7 +510,7 @@
         </div>
         <div class="mt-8 flex justify-end gap-3">
             <button type="button" onclick="this.closest('dialog').close()" class="px-5 py-2 text-gray-500 hover:bg-gray-50 rounded-lg font-medium transition">Cancel</button>
-            <button type="submit" class="btn-save-primary text-white px-6 py-2 rounded-lg font-bold transition shadow-md">Save</button>
+            <button type="submit" class="btn-save-primary text-white px-6 py-2 rounded-lg font-bold transition shadow-md" style="background-color: #58A7A6 !important;">Save</button>
         </div>
     </form>
     <div class="unit-delete-overlay hidden" data-unit-delete-confirm-box>
