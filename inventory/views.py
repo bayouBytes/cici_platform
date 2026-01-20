@@ -15,15 +15,20 @@ from .forms import (
     MealRecipeFormSet,
 )
 from store.forms import MenuItemForm 
+from djmoney.money import Money
 
   
 @staff_member_required
 def chef_dashboard(request):
     """The main command center for the Chef."""
     active_week = MenuWeek.objects.filter(is_active=True).first()
+    ingredients = Ingredient.objects.all()
+    ingredient_total_value = Money(0, 'USD')
+    for ingredient in ingredients:
+        ingredient_total_value += ingredient.quantity * ingredient.cost_per_unit
     
     context = {
-        'ingredients': Ingredient.objects.all(),
+        'ingredients': ingredients,
         'recipes': Recipe.objects.all(),
         'menu_items': MenuItem.objects.filter(menu_week=active_week) if active_week else [],
         'active_week': active_week,
@@ -35,6 +40,7 @@ def chef_dashboard(request):
         'units': IngredientUnit.objects.all(),
         'menu_item_form': MenuItemForm(initial={'menu_week': active_week}),
         'meals': Meal.objects.all(),
+        'ingredient_total_value': ingredient_total_value,
     }
     return render(request, 'inventory/dashboard.html', context)
 
@@ -61,7 +67,7 @@ def add_ingredient(request):
 def edit_ingredient(request, ingredient_id):
     ingredient = get_object_or_404(Ingredient, id=ingredient_id)
     if request.method == 'POST':
-        form = IngredientForm(request.POST, instance=ingredient)
+        form = IngredientForm(request.POST, instance=ingredient, prefix='edit')
         if form.is_valid():
             form.save()
     return redirect('chef_dashboard')

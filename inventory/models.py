@@ -32,6 +32,10 @@ class Ingredient(models.Model):
     def __str__(self):
         return f"{self.name} ({self.quantity} {self.unit_display})"
 
+    @property
+    def total_cost(self):
+        return self.quantity * self.cost_per_unit
+
 class Recipe(models.Model):
     name = models.CharField(max_length=200)
     instructions = models.TextField(blank=True)
