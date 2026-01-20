@@ -238,7 +238,7 @@
 
                     <td class="px-6 py-4 text-center align-middle">
                         {% if meal.description %}
-                            <button onclick="openInstructionsModal('{{ meal.name|escapejs }}', '{{ meal.description|escapejs }}')" 
+                            <button onclick="openMealDetailsModal('{{ meal.name|escapejs }}', '{{ meal.description|escapejs }}', '{% for mr in meal.meal_recipes.all %}{{ mr.recipe.name|escapejs }}:::{% for ri in mr.recipe.recipe_ingredients.all %}{{ ri.display_name|escapejs }} ({{ ri.quantity }}{% if ri.display_unit %} {{ ri.display_unit|escapejs }}{% endif %}){% if not ri.is_in_stock %} (missing {{ ri.missing_amount|floatformat:2 }}{% if ri.display_unit %} {{ ri.display_unit|escapejs }}{% endif %}){% endif %}{% if not forloop.last %}; {% endif %}{% endfor %}{% if not forloop.last %}|||{% endif %}{% endfor %}')" 
                                     class="text-xs bg-brand-light text-brand-teal border border-brand-teal px-3 py-1 rounded-full hover:bg-brand-teal hover:text-white transition font-bold shadow-sm">
                                 View Description
                             </button>
@@ -577,11 +577,11 @@
     </div>
     <div class="p-8 bg-white">
         <div class="mb-6">
-            <h4 class="text-xs uppercase tracking-wider text-brand-teal font-bold mb-2">Ingredients</h4>
+            <h4 id="modal-instructions-list-title" class="text-xs uppercase tracking-wider text-brand-teal font-bold mb-2">Ingredients</h4>
             <ul id="modal-instructions-ingredients" class="text-gray-600 text-sm list-disc pl-5"></ul>
         </div>
         <div class="mb-2">
-            <h4 class="text-xs uppercase tracking-wider text-brand-teal font-bold">Instructions</h4>
+            <h4 id="modal-instructions-text-title" class="text-xs uppercase tracking-wider text-brand-teal font-bold">Instructions</h4>
         </div>
         <div class="prose prose-sm max-w-none text-gray-600 leading-relaxed">
             <p id="modal-instructions-text" class="whitespace-pre-wrap"></p>
@@ -616,31 +616,72 @@
         modal.showModal();
     }
 
-    function openInstructionsModal(title, text, ingredients) {
+    function setModalDetails(title, text) {
         const modal = document.getElementById('modal-instructions');
         const titleEl = document.getElementById('modal-instructions-title');
         const textEl = document.getElementById('modal-instructions-text');
-        const ingredientsEl = document.getElementById('modal-instructions-ingredients');
-        
-        // Inject content
+        const textTitleEl = document.getElementById('modal-instructions-text-title');
         titleEl.textContent = title;
         textEl.textContent = text;
+        if (textTitleEl) {
+            textTitleEl.textContent = 'Instructions';
+        }
+        return modal;
+    }
+
+    function setModalList(listTitle, items, emptyText) {
+        const titleEl = document.getElementById('modal-instructions-list-title');
+        const ingredientsEl = document.getElementById('modal-instructions-ingredients');
+        titleEl.textContent = listTitle;
         ingredientsEl.innerHTML = '';
-        if (ingredients) {
-            ingredients.split(',').forEach(function(item) {
-                const text = item.trim();
+        if (items && items.length) {
+            items.forEach(function(item) {
+                const text = String(item || '').trim();
                 if (!text) return;
                 const li = document.createElement('li');
                 li.textContent = text;
                 ingredientsEl.appendChild(li);
             });
-        } else {
+        }
+        if (!ingredientsEl.children.length) {
             const li = document.createElement('li');
-            li.textContent = 'No ingredients listed.';
+            li.textContent = emptyText;
             ingredientsEl.appendChild(li);
         }
-        
-        // Open modal
+    }
+
+    function openInstructionsModal(title, text, ingredients) {
+        const modal = setModalDetails(title, text);
+        const items = ingredients ? ingredients.split(',').map((item) => item.trim()).filter(Boolean) : [];
+        setModalList('Ingredients', items, 'No ingredients listed.');
+        modal.showModal();
+    }
+
+    function openMealDetailsModal(title, text, recipes) {
+        const modal = setModalDetails(title, text);
+        const textTitleEl = document.getElementById('modal-instructions-text-title');
+        if (textTitleEl) {
+            textTitleEl.textContent = 'Description';
+        }
+        const items = [];
+
+        if (recipes) {
+            recipes.split('|||').forEach(function(entry) {
+                const trimmed = entry.trim();
+                if (!trimmed) return;
+                const parts = trimmed.split(':::');
+                const recipeName = (parts[0] || '').trim();
+                const ingredients = (parts[1] || '').trim();
+                if (!recipeName) return;
+                if (ingredients) {
+                    items.push(`${recipeName}: ${ingredients}`);
+                } else {
+                    items.push(recipeName);
+                }
+            });
+        }
+
+        setModalList('Recipes', items, 'No recipes listed.');
         modal.showModal();
     }
 
