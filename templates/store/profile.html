@@ -11,7 +11,14 @@
                 </div>
                 <ul>
                     {% for item in order.items.all %}
-                        <li>{{ item.quantity }}x {{ item.menu_item.recipe.name }}</li>
+                        <li>
+                            {{ item.quantity }}x
+                            {% if item.menu_item.meal %}
+                                {{ item.menu_item.meal.name }}
+                            {% else %}
+                                Unassigned
+                            {% endif %}
+                        </li>
                     {% endfor %}
                 </ul>
                 <small style="color: #666;">Placed on {{ order.created_at|date:"M d, Y" }}</small>

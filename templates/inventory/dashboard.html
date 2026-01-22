@@ -211,7 +211,7 @@
         </div>
     </div>
 
-    <div class="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden flex flex-col h-full mt-8 lg:mt-0 lg:col-span-2 meal-card relative">
+    <div class="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden flex flex-col h-full meal-card relative">
     <div class="bg-brand-dark p-5 flex justify-between items-center border-b-4 border-brand-teal">
         <h3 class="text-brand-light font-bold text-lg tracking-wide"><i class="fa-solid fa-utensils mr-2 text-brand-teal"></i> Meals</h3>
         <a href="{% url 'add_meal' %}" class="bg-brand-teal text-brand-dark hover:bg-white hover:text-brand-dark text-xs uppercase tracking-wider px-3 py-2 rounded font-bold transition shadow-md">
@@ -294,60 +294,146 @@
         </div>
     </div>
     </div>
-    <div class="lg:col-span-2 bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
-        <div class="bg-gradient-to-r from-brand-dark to-[#0f2e3d] p-6 flex flex-col md:flex-row justify-between items-center gap-4">
+    <div class="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden flex flex-col h-full">
+        <div class="bg-brand-dark p-5 flex flex-col md:flex-row justify-between items-center gap-4 border-b-4 border-brand-teal">
             <div>
-                <h3 class="text-brand-light font-bold text-xl tracking-wide flex items-center">
-                    <i class="fa-solid fa-calendar-week mr-3 text-brand-teal"></i> 
+                <h3 class="text-brand-light font-bold text-lg tracking-wide flex items-center">
+                    <i class="fa-solid fa-calendar-week mr-2 text-brand-teal"></i> 
                     Active Drop
                 </h3>
-                <p class="text-brand-teal/80 text-sm mt-1 font-mono uppercase tracking-widest">{{ active_week.name|default:"NO ACTIVE DROP SCHEDULED" }}</p>
+                <p class="text-brand-teal/80 text-sm mt-1 font-mono uppercase tracking-widest">{{ current_week.name|default:"NO DROP SCHEDULED" }}</p>
             </div>
-            {% if active_week %}
-                <button onclick="document.getElementById('modal-menu-item').showModal()" 
-                        class="bg-white text-brand-dark hover:bg-brand-teal hover:text-white px-6 py-2.5 rounded-lg font-bold shadow-lg transition transform hover:-translate-y-0.5">
-                    + Add Dish to Drop
+            <div class="flex flex-wrap items-center gap-2">
+                <button onclick="document.getElementById('modal-week-create').showModal()" 
+                        class="border border-brand-teal text-brand-teal text-xs uppercase tracking-wider px-3 py-2 rounded font-bold transition hover:bg-brand-teal hover:text-brand-dark">
+                    + Create Week
                 </button>
-            {% else %}
-                <a href="/admin/store/menuweek/add/" class="text-brand-teal underline hover:text-white transition text-sm">Create Week in Admin Panel &rarr;</a>
-            {% endif %}
+                {% if current_week %}
+                    <button onclick="document.getElementById('modal-menu-item').showModal()" 
+                            class="bg-brand-teal text-brand-dark hover:bg-white hover:text-brand-dark text-xs uppercase tracking-wider px-3 py-2 rounded font-bold transition shadow-md">
+                        + Add Meal to Drop
+                    </button>
+                    {% if current_week.is_archived %}
+                        <span class="text-xs uppercase tracking-wider text-gray-300 font-bold">Archived</span>
+                    {% else %}
+                        <form method="POST" action="{% url 'archive_menu_week' current_week.id %}">
+                            {% csrf_token %}
+                            <button type="submit" class="border border-brand-teal text-brand-teal text-xs uppercase tracking-wider px-3 py-2 rounded font-bold transition hover:bg-brand-teal hover:text-brand-dark">
+                                Archive
+                            </button>
+                        </form>
+                    {% endif %}
+                {% endif %}
+            </div>
         </div>
         
-        {% if active_week and menu_items %}
-        <div class="p-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 bg-brand-light/20">
-            {% for item in menu_items %}
-            <div class="bg-white border border-gray-100 rounded-xl p-5 shadow-sm hover:shadow-md transition relative group">
-                <div class="absolute top-0 left-0 w-1 h-full bg-brand-teal rounded-l-xl opacity-0 group-hover:opacity-100 transition"></div>
-                
-                <div class="flex justify-between items-start mb-3">
-                    <h4 class="font-bold text-brand-dark text-lg leading-tight">{{ item.recipe.name }}</h4>
-                </div>
-                
-                <div class="space-y-1 mb-4">
-                    <div class="flex justify-between text-xs text-gray-500">
-                        <span>Base Cost:</span>
-                        <span class="font-mono">{{ item.recipe.calculate_cost }}</span>
-                    </div>
-                </div>
-
-                <div class="pt-4 border-t border-gray-50 flex justify-between items-end">
-                    <div>
-                        <p class="text-[10px] text-gray-400 uppercase tracking-wider font-bold">Selling Price</p>
-                        <p class="text-2xl font-bold text-brand-dark">{{ item.selling_price }}</p>
-                    </div>
-                    <div class="text-right">
-                        <p class="text-[10px] text-gray-400 uppercase tracking-wider font-bold">Profit</p>
-                        <p class="text-lg font-bold text-green-600 font-mono">+{{ item.projected_profit }}</p>
+        {% if current_week and menu_items %}
+        <div class="p-0 flex-grow dashboard-table">
+            <table class="w-full text-left text-sm">
+                <thead class="bg-gray-50 text-gray-500 uppercase tracking-wider text-xs">
+                    <tr>
+                        <th class="px-6 py-3 font-semibold text-brand-teal">Meal</th>
+                        <th class="px-6 py-3 font-semibold text-brand-teal">Base Cost</th>
+                        <th class="px-6 py-3 font-semibold text-brand-teal">Price</th>
+                        <th class="px-6 py-3 font-semibold text-brand-teal">Profit</th>
+                        <th class="px-6 py-3 text-center font-semibold text-brand-teal">Description</th>
+                        <th class="px-6 py-3 text-right font-semibold text-brand-teal">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100">
+                    {% for item in menu_items %}
+                    <tr class="hover:bg-brand-light/50 transition">
+                        <td class="px-6 py-3 font-medium text-brand-dark">{{ item.meal.name }}</td>
+                        <td class="px-6 py-3 text-gray-600 font-mono">{{ item.meal.calculate_cost }}</td>
+                        <td class="px-6 py-3 text-gray-600 font-mono">
+                            {% if item.meal.customer_price %}
+                                {{ item.meal.customer_price }}
+                            {% else %}
+                                <span class="text-gray-300 text-xs">--</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-3 font-mono font-bold">
+                            {% if item.projected_profit %}
+                                {% if item.projected_profit.amount < 0 %}
+                                    <span class="text-red-500">
+                                        (${{ item.projected_profit.amount|stringformat:".2f"|cut:"-" }})
+                                    </span>
+                                {% else %}
+                                    <span class="text-green-600">
+                                        {{ item.projected_profit }}
+                                    </span>
+                                {% endif %}
+                            {% else %}
+                                <span class="text-gray-300 text-xs">--</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-3 text-center">
+                            {% if item.meal.description %}
+                                <button onclick="openMealDetailsModal('{{ item.meal.name|escapejs }}', '{{ item.meal.description|escapejs }}', '{% for mr in item.meal.meal_recipes.all %}{{ mr.recipe.name|escapejs }}:::{% for ri in mr.recipe.recipe_ingredients.all %}{{ ri.display_name|escapejs }} ({{ ri.quantity }}{% if ri.display_unit %} {{ ri.display_unit|escapejs }}{% endif %}){% if not ri.is_in_stock %} (missing {{ ri.missing_amount|floatformat:2 }}{% if ri.display_unit %} {{ ri.display_unit|escapejs }}{% endif %}){% endif %}{% if not forloop.last %}; {% endif %}{% endfor %}{% if not forloop.last %}|||{% endif %}{% endfor %}')" 
+                                        class="text-xs bg-brand-light text-brand-teal border border-brand-teal px-3 py-1 rounded-full hover:bg-brand-teal hover:text-white transition font-bold shadow-sm">
+                                    View Description
+                                </button>
+                            {% else %}
+                                <span class="text-xs text-gray-300 italic">No notes</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-3 text-right space-x-3">
+                            <button type="button"
+                                    class="text-gray-400 hover:text-brand-teal transition"
+                                    title="Edit"
+                                    data-edit-url="{% url 'edit_menu_item' item.id %}"
+                                    data-meal-id="{{ item.meal_id }}"
+                                    data-menu-week-id="{{ item.menu_week_id }}"
+                                    onclick="openMenuItemEdit(this)">
+                                <i class="fa-solid fa-pen-to-square"></i>
+                            </button>
+                            <a href="{% url 'delete_menu_item' item.id %}"
+                               class="text-gray-400 hover:text-red-500 transition"
+                               title="Delete"
+                               data-menu-delete
+                               data-menu-name="{{ item.meal.name|escapejs }}">
+                                <i class="fa-solid fa-trash"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="6" class="px-6 py-8 text-center text-gray-400 italic">No meals added to this drop yet.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            <div class="unit-delete-overlay hidden" data-menu-delete-confirm-box>
+                <div class="unit-delete-confirm">
+                    <div class="unit-delete-confirm__title">Delete Drop Item</div>
+                    <div class="unit-delete-confirm__text" data-menu-delete-text></div>
+                    <div class="unit-delete-confirm__actions">
+                        <button type="button" class="unit-delete-confirm__cancel" data-menu-delete-cancel>Cancel</button>
+                        <button type="button" class="unit-delete-confirm__confirm" data-menu-delete-confirm>Delete</button>
                     </div>
                 </div>
             </div>
-            {% endfor %}
         </div>
-        {% elif active_week %}
+        {% elif current_week %}
              <div class="p-12 text-center text-gray-400">
                 <i class="fa-solid fa-plate-wheat text-4xl mb-3 text-gray-200"></i>
-                <p>No dishes added to this drop yet.</p>
+                <p>No meals added to this drop yet.</p>
              </div>
+        {% else %}
+             <div class="p-12 text-center text-gray-400">
+                <i class="fa-solid fa-calendar-xmark text-4xl mb-3 text-gray-200"></i>
+                <p>Create a week to start building the drop.</p>
+             </div>
+        {% endif %}
+        {% if archived_weeks %}
+        <div class="border-t border-gray-100 px-6 py-4">
+            <div class="text-xs uppercase tracking-wider text-gray-400 font-bold mb-2">Archived Drops</div>
+            <div class="flex flex-wrap gap-2">
+                {% for week in archived_weeks %}
+                    <a href="/admin/store/menuweek/{{ week.id }}/change/" class="text-xs text-brand-teal underline hover:text-brand-dark">
+                        {{ week.name }}
+                    </a>
+                {% endfor %}
+            </div>
+        </div>
         {% endif %}
     </div>
 </div>
@@ -447,6 +533,36 @@
             </div>
         </div>
     </div>
+</dialog>
+
+<dialog id="modal-week-create" class="p-0 rounded-xl shadow-2xl backdrop:bg-brand-dark/80 w-full max-w-md open:animate-[fadeIn_0.2s_ease-out]">
+    <div class="bg-brand-dark p-5 border-b border-gray-700 flex justify-between items-center">
+        <h3 class="text-white font-bold text-lg">Create Drop Week</h3>
+        <button onclick="this.closest('dialog').close()" class="text-gray-400 hover:text-white transition"><i class="fa-solid fa-xmark fa-lg"></i></button>
+    </div>
+    <form method="POST" action="{% url 'create_menu_week' %}" class="p-6 bg-white">
+        {% csrf_token %}
+        <div class="grid grid-cols-1 gap-4">
+            <div>
+                <label class="block text-brand-dark font-bold mb-2" for="{{ menu_week_form.name.id_for_label }}">Week Name</label>
+                {{ menu_week_form.name }}
+                {{ menu_week_form.name.errors }}
+            </div>
+            <div>
+                <label class="block text-brand-dark font-bold mb-2" for="{{ menu_week_form.start_date.id_for_label }}">Start Date</label>
+                {{ menu_week_form.start_date }}
+                {{ menu_week_form.start_date.errors }}
+            </div>
+            <label class="flex items-center gap-2 text-sm font-semibold text-brand-dark">
+                {{ menu_week_form.is_active }}
+                <span>Make active now</span>
+            </label>
+        </div>
+        <div class="mt-8 flex justify-end gap-3">
+            <button type="button" onclick="this.closest('dialog').close()" class="px-5 py-2 text-gray-500 hover:bg-gray-50 rounded-lg font-medium transition">Cancel</button>
+            <button type="submit" class="btn-save-primary text-white px-6 py-2 rounded-lg font-bold transition shadow-md">Create Week</button>
+        </div>
+    </form>
 </dialog>
 
 <dialog id="modal-ingredient-edit" class="p-0 rounded-xl shadow-2xl backdrop:bg-brand-dark/80 w-full max-w-md open:animate-[fadeIn_0.2s_ease-out]">
@@ -575,15 +691,44 @@
 
 <dialog id="modal-menu-item" class="p-0 rounded-xl shadow-2xl backdrop:bg-brand-dark/80 w-full max-w-md open:animate-[fadeIn_0.2s_ease-out]">
     <div class="bg-brand-dark p-5 border-b border-gray-700 flex justify-between items-center">
-        <h3 class="text-white font-bold text-lg">Add to Menu</h3>
+        <h3 class="text-white font-bold text-lg">Add Meal to Drop</h3>
         <button onclick="this.closest('dialog').close()" class="text-gray-400 hover:text-white transition"><i class="fa-solid fa-xmark fa-lg"></i></button>
     </div>
     <form method="POST" action="{% url 'add_menu_item' %}" class="p-6 bg-white">
         {% csrf_token %}
-        {{ menu_item_form.as_p }}
+        <div class="grid grid-cols-1 gap-4">
+            <div>
+                <label class="block text-brand-dark font-bold mb-2" for="{{ menu_item_form.meal.id_for_label }}">Meal</label>
+                {{ menu_item_form.meal }}
+                {{ menu_item_form.meal.errors }}
+            </div>
+        </div>
+        {{ menu_item_form.menu_week }}
         <div class="mt-8 flex justify-end gap-3">
             <button type="button" onclick="this.closest('dialog').close()" class="px-5 py-2 text-gray-500 hover:bg-gray-50 rounded-lg font-medium transition">Cancel</button>
             <button type="submit" class="bg-brand-teal text-white px-6 py-2 rounded-lg font-bold hover:bg-brand-dark transition shadow-md">Add to Drop</button>
+        </div>
+    </form>
+</dialog>
+
+<dialog id="modal-menu-item-edit" class="p-0 rounded-xl shadow-2xl backdrop:bg-brand-dark/80 w-full max-w-md open:animate-[fadeIn_0.2s_ease-out]">
+    <div class="bg-brand-dark p-5 border-b border-gray-700 flex justify-between items-center">
+        <h3 class="text-white font-bold text-lg">Edit Drop Item</h3>
+        <button onclick="this.closest('dialog').close()" class="text-gray-400 hover:text-white transition"><i class="fa-solid fa-xmark fa-lg"></i></button>
+    </div>
+    <form method="POST" class="p-6 bg-white" id="menu-item-edit-form">
+        {% csrf_token %}
+        <div class="grid grid-cols-1 gap-4">
+            <div>
+                <label class="block text-brand-dark font-bold mb-2" for="{{ edit_menu_item_form.meal.id_for_label }}">Meal</label>
+                {{ edit_menu_item_form.meal }}
+                {{ edit_menu_item_form.meal.errors }}
+            </div>
+        </div>
+        {{ edit_menu_item_form.menu_week }}
+        <div class="mt-8 flex justify-end gap-3">
+            <button type="button" onclick="this.closest('dialog').close()" class="px-5 py-2 text-gray-500 hover:bg-gray-50 rounded-lg font-medium transition">Cancel</button>
+            <button type="submit" class="btn-save-primary text-white px-6 py-2 rounded-lg font-bold transition shadow-md">Save</button>
         </div>
     </form>
 </dialog>
@@ -705,6 +850,21 @@
         modal.showModal();
     }
 
+    function openMenuItemEdit(trigger) {
+        const modal = document.getElementById('modal-menu-item-edit');
+        const form = document.getElementById('menu-item-edit-form');
+        if (!modal || !form) return;
+
+        form.action = trigger.dataset.editUrl;
+        const mealSelect = document.getElementById('{{ edit_menu_item_form.meal.id_for_label }}');
+        if (mealSelect) mealSelect.value = trigger.dataset.mealId || '';
+
+        const weekInput = form.querySelector('input[name$="menu_week"]');
+        if (weekInput) weekInput.value = trigger.dataset.menuWeekId || '';
+
+        modal.showModal();
+    }
+
     function openRecipeDeleteConfirm(trigger) {
         const card = trigger.closest('.recipe-card');
         const confirmBox = card?.querySelector('[data-recipe-delete-confirm-box]');
@@ -735,6 +895,17 @@
 
         confirmBox.dataset.deleteUrl = trigger.getAttribute('href');
         textEl.textContent = `Delete ${trigger.dataset.mealName || 'this meal'}?`;
+        confirmBox.classList.remove('hidden');
+    }
+
+    function openMenuDeleteConfirm(trigger) {
+        const card = trigger.closest('.bg-white');
+        const confirmBox = card?.querySelector('[data-menu-delete-confirm-box]');
+        const textEl = card?.querySelector('[data-menu-delete-text]');
+        if (!confirmBox || !textEl) return;
+
+        confirmBox.dataset.deleteUrl = trigger.getAttribute('href');
+        textEl.textContent = `Delete ${trigger.dataset.menuName || 'this item'} from the drop?`;
         confirmBox.classList.remove('hidden');
     }
 
@@ -1138,6 +1309,30 @@
         const mealConfirm = event.target.closest('[data-meal-delete-confirm]');
         if (mealConfirm) {
             const box = mealConfirm.closest('[data-meal-delete-confirm-box]');
+            const deleteUrl = box?.dataset.deleteUrl;
+            if (deleteUrl) {
+                window.location.href = deleteUrl;
+            }
+            return;
+        }
+
+        const menuDelete = event.target.closest('[data-menu-delete]');
+        if (menuDelete) {
+            event.preventDefault();
+            openMenuDeleteConfirm(menuDelete);
+            return;
+        }
+
+        const menuCancel = event.target.closest('[data-menu-delete-cancel]');
+        if (menuCancel) {
+            const box = menuCancel.closest('[data-menu-delete-confirm-box]');
+            if (box) box.classList.add('hidden');
+            return;
+        }
+
+        const menuConfirm = event.target.closest('[data-menu-delete-confirm]');
+        if (menuConfirm) {
+            const box = menuConfirm.closest('[data-menu-delete-confirm-box]');
             const deleteUrl = box?.dataset.deleteUrl;
             if (deleteUrl) {
                 window.location.href = deleteUrl;

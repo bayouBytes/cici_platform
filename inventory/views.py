@@ -14,31 +14,38 @@ from .forms import (
     MealForm,
     MealRecipeFormSet,
 )
-from store.forms import MenuItemForm 
+from store.forms import MenuItemForm, MenuWeekForm 
 from djmoney.money import Money
 
   
 @staff_member_required
 def chef_dashboard(request):
     """The main command center for the Chef."""
-    active_week = MenuWeek.objects.filter(is_active=True).first()
+    active_week = MenuWeek.objects.filter(is_active=True, is_archived=False).first()
+    current_week = active_week or MenuWeek.objects.filter(is_archived=False).order_by('-start_date').first()
     ingredients = Ingredient.objects.all()
     ingredient_total_value = Money(0, 'USD')
     for ingredient in ingredients:
         ingredient_total_value += ingredient.quantity * ingredient.cost_per_unit
     
+    menu_items = MenuItem.objects.filter(menu_week=current_week, meal__isnull=False).select_related('meal') if current_week else []
+    archived_weeks = MenuWeek.objects.filter(is_archived=True).order_by('-start_date')
     context = {
         'ingredients': ingredients,
         'recipes': Recipe.objects.all(),
-        'menu_items': MenuItem.objects.filter(menu_week=active_week) if active_week else [],
+        'menu_items': menu_items,
         'active_week': active_week,
+        'current_week': current_week,
+        'archived_weeks': archived_weeks,
         # Pass empty forms for the 'Add' modals
         'ingredient_form': IngredientForm(),
         'edit_ingredient_form': IngredientForm(prefix='edit'),
         'unit_form': IngredientUnitForm(prefix='unit'),
         'edit_unit_form': IngredientUnitForm(prefix='unit-edit'),
         'units': IngredientUnit.objects.all(),
-        'menu_item_form': MenuItemForm(initial={'menu_week': active_week}),
+        'menu_item_form': MenuItemForm(initial={'menu_week': current_week}),
+        'menu_week_form': MenuWeekForm(),
+        'edit_menu_item_form': MenuItemForm(prefix='menu-edit'),
         'meals': Meal.objects.all(),
         'ingredient_total_value': ingredient_total_value,
     }

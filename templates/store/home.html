@@ -28,13 +28,19 @@
                 <div class="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden hover:shadow-xl transition duration-300 group flex flex-col h-full">
                     <div class="bg-brand-dark p-6 relative overflow-hidden">
                         <div class="absolute -right-6 -top-6 w-24 h-24 bg-brand-teal/20 rounded-full group-hover:scale-150 transition duration-500"></div>
-                        <h3 class="text-2xl font-bold text-white relative z-10">{{ item.recipe.name }}</h3>
-                        <div class="text-brand-teal font-mono text-lg mt-1 relative z-10">{{ item.selling_price }}</div>
+                        <h3 class="text-2xl font-bold text-white relative z-10">{{ item.meal.name }}</h3>
+                        <div class="text-brand-teal font-mono text-lg mt-1 relative z-10">
+                            {% if item.meal.customer_price %}
+                                {{ item.meal.customer_price }}
+                            {% else %}
+                                <span class="text-gray-300 text-sm">--</span>
+                            {% endif %}
+                        </div>
                     </div>
 
                     <div class="p-6 flex-grow flex flex-col justify-between">
                         <p class="text-gray-600 leading-relaxed mb-6 text-sm">
-                            {{ item.recipe.instructions|truncatechars:120 }}
+                            {{ item.meal.description|truncatechars:120 }}
                         </p>
                         
                         <div class="bg-brand-light rounded-xl p-4 flex items-center justify-between border border-brand-teal/20">
