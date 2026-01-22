@@ -20,6 +20,87 @@
     </div>
 </div>
 
+<div class="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden mb-8">
+    <div class="bg-brand-dark p-5 flex justify-between items-center border-b-4 border-brand-teal">
+        <h3 class="text-brand-light font-bold text-lg tracking-wide">
+            <i class="fa-solid fa-receipt mr-2 text-brand-teal"></i>
+            Orders
+            {% if current_week %}
+                <span class="ml-2 text-xs font-semibold text-brand-teal">{{ current_week.name }}</span>
+            {% endif %}
+        </h3>
+        {% if active_week %}
+            <span class="text-xs uppercase tracking-wider text-brand-teal font-bold">Active Drop</span>
+        {% else %}
+            <span class="text-xs uppercase tracking-wider text-gray-400 font-bold">No Active Drop</span>
+        {% endif %}
+    </div>
+    <div class="p-0 overflow-x-auto dashboard-table">
+        <table class="w-full text-left text-sm">
+            <thead class="bg-gray-50 text-gray-500 uppercase tracking-wider text-xs">
+                <tr>
+                    <th class="px-6 py-3 font-semibold text-brand-teal">Customer</th>
+                    <th class="px-6 py-3 font-semibold text-brand-teal">Meal</th>
+                    <th class="px-6 py-3 text-right font-semibold text-brand-teal">Qty</th>
+                    <th class="px-6 py-3 text-right font-semibold text-brand-teal">Price / Meal</th>
+                    <th class="px-6 py-3 text-right font-semibold text-brand-teal">Cost / Meal</th>
+                    <th class="px-6 py-3 text-right font-semibold text-brand-teal">Line Total</th>
+                    <th class="px-6 py-3 text-right font-semibold text-brand-teal">Line Cost</th>
+                    <th class="px-6 py-3 text-right font-semibold text-brand-teal">Line Profit</th>
+                    <th class="px-6 py-3 text-right font-semibold text-brand-teal">Order Total</th>
+                    <th class="px-6 py-3 text-right font-semibold text-brand-teal">Order Cost</th>
+                    <th class="px-6 py-3 text-right font-semibold text-brand-teal">Order Profit</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+                {% for item in order_items %}
+                <tr class="hover:bg-brand-light/50 transition group">
+                    <td class="px-6 py-3 font-medium text-brand-dark">
+                        {{ item.order.customer_name|default:item.order.customer.username }}
+                    </td>
+                    <td class="px-6 py-3 text-gray-700">
+                        {{ item.meal_name|default:item.menu_item.meal.name }}
+                    </td>
+                    <td class="px-6 py-3 text-right font-mono text-gray-700">
+                        {{ item.quantity }}
+                    </td>
+                    <td class="px-6 py-3 text-right font-mono text-gray-600">
+                        {{ item.unit_price }}
+                    </td>
+                    <td class="px-6 py-3 text-right font-mono text-gray-600">
+                        {{ item.unit_cost }}
+                    </td>
+                    <td class="px-6 py-3 text-right font-mono text-gray-600">
+                        {{ item.line_price }}
+                    </td>
+                    <td class="px-6 py-3 text-right font-mono text-gray-600">
+                        {{ item.line_cost }}
+                    </td>
+                    <td class="px-6 py-3 text-right font-mono text-gray-600">
+                        {{ item.line_profit }}
+                    </td>
+                    <td class="px-6 py-3 text-right font-mono text-gray-600">
+                        {{ item.order.total_price }}
+                    </td>
+                    <td class="px-6 py-3 text-right font-mono text-gray-600">
+                        {{ item.order.total_cost }}
+                    </td>
+                    <td class="px-6 py-3 text-right font-mono text-gray-600">
+                        {{ item.order.total_profit }}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="11" class="px-6 py-8 text-center text-gray-400 italic">
+                        No orders yet for this drop.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
 <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
     
     <div class="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden flex flex-col h-full ingredient-card relative">
