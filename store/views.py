@@ -3,20 +3,21 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.admin.views.decorators import staff_member_required
 from django.db.models import Sum
 from django.contrib import messages
+from django.utils import timezone
 from .models import MenuWeek, MenuItem, Order, OrderItem
-from .forms import MenuItemForm
+from .forms import MenuItemForm, MenuWeekForm
 
 def home(request):
     """
     Landing Page: Shows the currently active MenuWeek.
     """
     # Fetch the currently active week (The Drop)
-    active_week = MenuWeek.objects.filter(is_active=True).first()
+    active_week = MenuWeek.objects.filter(is_active=True, is_archived=False).first()
     
     context = {
         'active_week': active_week,
         # If no week is active, items will be None, template handles "Closed" state
-        'items': active_week.items.all() if active_week else None
+        'items': active_week.items.select_related('meal').filter(meal__isnull=False) if active_week else None
     }
     return render(request, 'store/home.html', context)
 
@@ -83,7 +84,7 @@ def batch_fulfillment_report(request):
     """
     Chef's View: Aggregates ingredients for the ACTIVE week's PAID orders.
     """
-    active_week = MenuWeek.objects.filter(is_active=True).first()
+    active_week = MenuWeek.objects.filter(is_active=True, is_archived=False).first()
     grocery_list = {}
 
     if active_week:
@@ -95,23 +96,29 @@ def batch_fulfillment_report(request):
         ).distinct()
 
         for order in paid_orders:
-            for item in order.items.all():
-                # For each plate ordered, how much of each ingredient is needed?
-                # Navigate: OrderItem -> MenuItem -> Recipe -> RecipeIngredient
-                recipe_ingredients = item.menu_item.recipe.recipe_ingredients.all()
-                
-                for ri in recipe_ingredients:
-                    ingredient_name = ri.ingredient.name
-                    # Total needed = (Amount per recipe * OrderItem Qty)
-                    total_needed = ri.quantity * item.quantity
+            for item in order.items.select_related('menu_item__meal'):
+                meal = item.menu_item.meal
+                if not meal:
+                    continue
+                # For each meal ordered, aggregate recipe ingredients
+                for mr in meal.meal_recipes.all():
+                    recipe_ingredients = mr.recipe.recipe_ingredients.all()
+                    for ri in recipe_ingredients:
+                        resolved = ri.resolved_ingredient
+                        ingredient_name = resolved.name if resolved else ri.ingredient_name
+                        ingredient_unit = resolved.unit_display if resolved else (ri.ingredient_unit.name if ri.ingredient_unit else '')
+                        if not ingredient_name:
+                            continue
+                        # Total needed = (Amount per recipe * meal recipe qty * order item qty)
+                        total_needed = ri.quantity * mr.quantity * item.quantity
 
-                    if ingredient_name in grocery_list:
-                        grocery_list[ingredient_name]['qty'] += total_needed
-                    else:
-                        grocery_list[ingredient_name] = {
-                            'qty': total_needed,
-                            'unit': ri.ingredient.unit_display
-                        }
+                        if ingredient_name in grocery_list:
+                            grocery_list[ingredient_name]['qty'] += total_needed
+                        else:
+                            grocery_list[ingredient_name] = {
+                                'qty': total_needed,
+                                'unit': ingredient_unit
+                            }
 
     return render(request, 'store/report.html', {
         'grocery_list': grocery_list,
@@ -123,5 +130,49 @@ def add_menu_item(request):
     if request.method == 'POST':
         form = MenuItemForm(request.POST)
         if form.is_valid():
-            form.save()
+            menu_item = form.save(commit=False)
+            if not menu_item.menu_week:
+                menu_item.menu_week = MenuWeek.objects.filter(is_archived=False).order_by('-is_active', '-start_date').first()
+            if menu_item.menu_week:
+                menu_item.save()
+    return redirect('chef_dashboard')
+
+@staff_member_required
+def create_menu_week(request):
+    if request.method == 'POST':
+        form = MenuWeekForm(request.POST)
+        if form.is_valid():
+            week = form.save(commit=False)
+            week.is_archived = False
+            if week.is_active:
+                MenuWeek.objects.filter(is_active=True, is_archived=False).update(is_active=False)
+            week.save()
+    return redirect('chef_dashboard')
+
+@staff_member_required
+def edit_menu_item(request, item_id):
+    menu_item = get_object_or_404(MenuItem, id=item_id)
+    if request.method == 'POST':
+        form = MenuItemForm(request.POST, instance=menu_item, prefix='menu-edit')
+        if form.is_valid():
+            updated_item = form.save(commit=False)
+            if not updated_item.menu_week:
+                updated_item.menu_week = menu_item.menu_week
+            updated_item.save()
+    return redirect('chef_dashboard')
+
+@staff_member_required
+def delete_menu_item(request, item_id):
+    menu_item = get_object_or_404(MenuItem, id=item_id)
+    menu_item.delete()
+    return redirect('chef_dashboard')
+
+@staff_member_required
+def archive_menu_week(request, week_id):
+    week = get_object_or_404(MenuWeek, id=week_id)
+    if request.method == 'POST':
+        week.is_active = False
+        week.is_archived = True
+        week.archived_at = timezone.now()
+        week.save(update_fields=['is_active', 'is_archived', 'archived_at'])
     return redirect('chef_dashboard')

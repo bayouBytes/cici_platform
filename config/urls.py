@@ -18,7 +18,7 @@ from django.contrib import admin
 from django.urls import path, include
 from users.views import signup
 from store.views import home, checkout, profile, batch_fulfillment_report
-from store.views import add_menu_item
+from store.views import add_menu_item, edit_menu_item, delete_menu_item, archive_menu_week, create_menu_week
 from inventory.views import (
     chef_dashboard,
     add_ingredient,
@@ -56,4 +56,8 @@ urlpatterns = [
     path('chef/meal/edit/<int:meal_id>/', manage_meal, name='edit_meal'),
     path('chef/meal/delete/<int:meal_id>/', delete_meal, name='delete_meal'),
     path('chef/menu/add/', add_menu_item, name='add_menu_item'),
+    path('chef/menu/edit/<int:item_id>/', edit_menu_item, name='edit_menu_item'),
+    path('chef/menu/delete/<int:item_id>/', delete_menu_item, name='delete_menu_item'),
+    path('chef/menu-week/archive/<int:week_id>/', archive_menu_week, name='archive_menu_week'),
+    path('chef/menu-week/create/', create_menu_week, name='create_menu_week'),
 ]
