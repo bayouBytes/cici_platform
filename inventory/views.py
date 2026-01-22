@@ -4,7 +4,7 @@ from django.contrib.admin.views.decorators import staff_member_required
 
 # CORRECT: Import Meal from local models (Inventory), NOT Store
 from .models import Ingredient, IngredientUnit, Recipe, Meal
-from store.models import MenuItem, MenuWeek
+from store.models import MenuItem, MenuWeek, OrderItem
 
 from .forms import (
     IngredientForm,
@@ -30,10 +30,21 @@ def chef_dashboard(request):
     
     menu_items = MenuItem.objects.filter(menu_week=current_week, meal__isnull=False).select_related('meal') if current_week else []
     archived_weeks = MenuWeek.objects.filter(is_archived=True).order_by('-start_date')
+    order_items = (
+        OrderItem.objects.select_related(
+            'order',
+            'order__customer',
+            'menu_item',
+            'menu_item__meal',
+        ).filter(order__menu_week=current_week)
+        if current_week
+        else OrderItem.objects.none()
+    )
     context = {
         'ingredients': ingredients,
         'recipes': Recipe.objects.all(),
         'menu_items': menu_items,
+        'order_items': order_items,
         'active_week': active_week,
         'current_week': current_week,
         'archived_weeks': archived_weeks,
