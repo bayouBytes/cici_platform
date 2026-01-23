@@ -29,6 +29,11 @@
                 <span class="ml-2 text-xs font-semibold text-brand-teal">{{ current_week.name }}</span>
             {% endif %}
         </h3>
+        <div class="text-xs uppercase tracking-wider text-gray-300 font-bold text-right">
+            <div>Total Sales: {{ order_totals.total_price }}</div>
+            <div>Total Cost: {{ order_totals.total_cost }}</div>
+            <div>Total Profit: {{ order_totals.total_profit }}</div>
+        </div>
         {% if active_week %}
             <span class="text-xs uppercase tracking-wider text-brand-teal font-bold">Active Drop</span>
         {% else %}
@@ -44,59 +49,62 @@
                     <th class="px-6 py-3 text-right font-semibold text-brand-teal">Qty</th>
                     <th class="px-6 py-3 text-right font-semibold text-brand-teal">Price / Meal</th>
                     <th class="px-6 py-3 text-right font-semibold text-brand-teal">Cost / Meal</th>
-                    <th class="px-6 py-3 text-right font-semibold text-brand-teal">Line Total</th>
+                    <th class="px-6 py-3 text-right font-semibold text-brand-teal">Line Paid</th>
                     <th class="px-6 py-3 text-right font-semibold text-brand-teal">Line Cost</th>
                     <th class="px-6 py-3 text-right font-semibold text-brand-teal">Line Profit</th>
-                    <th class="px-6 py-3 text-right font-semibold text-brand-teal">Order Total</th>
-                    <th class="px-6 py-3 text-right font-semibold text-brand-teal">Order Cost</th>
-                    <th class="px-6 py-3 text-right font-semibold text-brand-teal">Order Profit</th>
                 </tr>
             </thead>
-            <tbody class="divide-y divide-gray-100">
-                {% for item in order_items %}
-                <tr class="hover:bg-brand-light/50 transition group">
-                    <td class="px-6 py-3 font-medium text-brand-dark">
-                        {{ item.order.customer_name|default:item.order.customer.username }}
-                    </td>
-                    <td class="px-6 py-3 text-gray-700">
-                        {{ item.meal_name|default:item.menu_item.meal.name }}
-                    </td>
-                    <td class="px-6 py-3 text-right font-mono text-gray-700">
-                        {{ item.quantity }}
-                    </td>
-                    <td class="px-6 py-3 text-right font-mono text-gray-600">
-                        {{ item.unit_price }}
-                    </td>
-                    <td class="px-6 py-3 text-right font-mono text-gray-600">
-                        {{ item.unit_cost }}
-                    </td>
-                    <td class="px-6 py-3 text-right font-mono text-gray-600">
-                        {{ item.line_price }}
-                    </td>
-                    <td class="px-6 py-3 text-right font-mono text-gray-600">
-                        {{ item.line_cost }}
-                    </td>
-                    <td class="px-6 py-3 text-right font-mono text-gray-600">
-                        {{ item.line_profit }}
-                    </td>
-                    <td class="px-6 py-3 text-right font-mono text-gray-600">
-                        {{ item.order.total_price }}
-                    </td>
-                    <td class="px-6 py-3 text-right font-mono text-gray-600">
-                        {{ item.order.total_cost }}
-                    </td>
-                    <td class="px-6 py-3 text-right font-mono text-gray-600">
-                        {{ item.order.total_profit }}
-                    </td>
-                </tr>
-                {% empty %}
-                <tr>
-                    <td colspan="11" class="px-6 py-8 text-center text-gray-400 italic">
-                        No orders yet for this drop.
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
+            {% regroup order_items by order as grouped_orders %}
+            {% for group in grouped_orders %}
+                <tbody class="divide-y divide-gray-100 border-t border-brand-teal/30">
+                    {% for item in group.list %}
+                    <tr class="hover:bg-brand-light/50 transition group">
+                        <td class="px-6 py-3 font-medium text-brand-dark">
+                            <a href="{% url 'customer_order_history' item.order.customer_id %}" class="hover:text-brand-teal hover:underline">
+                                {{ item.order.customer_name|default:item.order.customer.username }}
+                            </a>
+                        </td>
+                        <td class="px-6 py-3 text-gray-700">
+                            {{ item.meal_name|default:item.menu_item.meal.name }}
+                        </td>
+                        <td class="px-6 py-3 text-right font-mono text-gray-700">
+                            {{ item.quantity }}
+                        </td>
+                        <td class="px-6 py-3 text-right font-mono text-gray-600">
+                            {{ item.unit_price }}
+                        </td>
+                        <td class="px-6 py-3 text-right font-mono text-gray-600">
+                            {{ item.unit_cost }}
+                        </td>
+                        <td class="px-6 py-3 text-right font-mono text-gray-600">
+                            {{ item.line_price }}
+                        </td>
+                        <td class="px-6 py-3 text-right font-mono text-gray-600">
+                            {{ item.line_cost }}
+                        </td>
+                        <td class="px-6 py-3 text-right font-mono text-gray-600">
+                            {{ item.line_profit }}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    <tr class="bg-gray-50">
+                        <td colspan="7" class="px-6 py-3 text-right text-xs uppercase tracking-wider text-gray-500 font-semibold">
+                            Order Total
+                        </td>
+                        <td class="px-6 py-3 text-right font-mono text-gray-700 font-semibold">
+                            {{ group.grouper.total_price }}
+                        </td>
+                    </tr>
+                </tbody>
+            {% empty %}
+                <tbody>
+                    <tr>
+                        <td colspan="8" class="px-6 py-8 text-center text-gray-400 italic">
+                            No orders yet for this drop.
+                        </td>
+                    </tr>
+                </tbody>
+            {% endfor %}
         </table>
     </div>
 </div>

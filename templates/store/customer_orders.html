@@ -1,0 +1,59 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <h2 class="text-2xl font-bold text-brand-dark mb-6">Order History for {{ customer.get_full_name|default:customer.username }}</h2>
+    {% if orders %}
+        {% for order in orders %}
+            <div class="bg-white rounded-xl shadow-lg border-2 border-brand-teal/40 p-6 mb-6">
+                <div class="flex items-center justify-between border-b border-gray-100 pb-3 mb-4">
+                    <div class="font-semibold text-brand-dark">Order #{{ order.id }}</div>
+                    <div class="text-sm text-gray-500">
+                        Status:
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-full bg-gray-100 text-gray-700 font-semibold">
+                            {{ order.status }}
+                        </span>
+                    </div>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm">
+                        <thead class="text-xs uppercase tracking-wider text-gray-500">
+                            <tr>
+                                <th class="py-2 pr-4">Meal</th>
+                                <th class="py-2 pr-4 text-right">Qty</th>
+                                <th class="py-2 pr-4 text-right">Price / Meal</th>
+                                <th class="py-2 pr-4 text-right">Line Paid</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-100">
+                            {% for item in order.items.all %}
+                                <tr>
+                                    <td class="py-2 pr-4 text-gray-700">
+                                        {% if item.menu_item.meal %}
+                                            {{ item.menu_item.meal.name }}
+                                        {% else %}
+                                            Unassigned
+                                        {% endif %}
+                                    </td>
+                                    <td class="py-2 pr-4 text-right font-mono text-gray-600">{{ item.quantity }}</td>
+                                    <td class="py-2 pr-4 text-right font-mono text-gray-600">{{ item.unit_price }}</td>
+                                    <td class="py-2 pr-4 text-right font-mono text-gray-700 font-semibold">{{ item.line_price }}</td>
+                                </tr>
+                            {% endfor %}
+                            <tr class="bg-gray-50">
+                                <td colspan="3" class="py-2 pr-4 text-right text-xs uppercase tracking-wider text-gray-500 font-semibold">
+                                    Order Total
+                                </td>
+                                <td class="py-2 pr-4 text-right font-mono text-gray-800 font-semibold">
+                                    {{ order.total_price }}
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="text-xs text-gray-500 mt-3">Placed on {{ order.created_at|date:"M d, Y" }}</div>
+            </div>
+        {% endfor %}
+    {% else %}
+        <p class="text-gray-500">No orders yet.</p>
+    {% endif %}
+{% endblock %}

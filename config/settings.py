@@ -40,10 +40,16 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "django.contrib.sites",
     'users.apps.UsersConfig',
     'inventory.apps.InventoryConfig',
     'store.apps.StoreConfig',
     'djmoney',
+    "allauth",
+    "allauth.account",
+    "allauth.socialaccount",
+    "allauth.socialaccount.providers.google",
+    "allauth.socialaccount.providers.facebook",
 ]
 
 MIDDLEWARE = [
@@ -52,6 +58,7 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "allauth.account.middleware.AccountMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
@@ -132,6 +139,18 @@ STATICFILES_DIRS = [
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 AUTH_USER_MODEL = 'users.User'
+
+# Required by django-allauth
+SITE_ID = 1
+
+# Ensure both local and social auth work.
+AUTHENTICATION_BACKENDS = [
+    "django.contrib.auth.backends.ModelBackend",
+    "allauth.account.auth_backends.AuthenticationBackend",
+]
+
+# Keep email verification disabled while testing user creation.
+ACCOUNT_EMAIL_VERIFICATION = "none"
 
 # Redirect to the 'home' page (or 'profile') after login
 LOGIN_REDIRECT_URL = 'home' 

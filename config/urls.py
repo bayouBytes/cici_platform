@@ -16,8 +16,8 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
-from users.views import signup
-from store.views import home, checkout, profile, batch_fulfillment_report
+from users.views import signup, verify_email
+from store.views import home, checkout, profile, batch_fulfillment_report, customer_order_history
 from store.views import add_menu_item, edit_menu_item, delete_menu_item, archive_menu_week, create_menu_week
 from inventory.views import (
     chef_dashboard,
@@ -37,11 +37,14 @@ urlpatterns = [
     path('', home, name='home'),
     path('checkout/', checkout, name='checkout'),
     path('profile/', profile, name='profile'),
+    path('chef/customers/<int:customer_id>/orders/', customer_order_history, name='customer_order_history'),
     path('report/current/', batch_fulfillment_report, name='fulfillment_report'),
     
     # Auth Routes
     path('signup/', signup, name='signup'),
+    path('verify-email/<uuid:token>/', verify_email, name='verify_email'),
     path('accounts/', include('django.contrib.auth.urls')), # Handles /login/ and /logout/
+    path('social/', include('allauth.urls')),
     path('chef/', chef_dashboard, name='chef_dashboard'),
     path('chef/ingredient/add/', add_ingredient, name='add_ingredient'),
     path('chef/ingredient/edit/<int:ingredient_id>/', edit_ingredient, name='edit_ingredient'),

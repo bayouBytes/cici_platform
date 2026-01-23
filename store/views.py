@@ -6,6 +6,7 @@ from django.contrib import messages
 from django.utils import timezone
 from .models import MenuWeek, MenuItem, Order, OrderItem
 from .forms import MenuItemForm, MenuWeekForm
+from users.models import User
 
 def home(request):
     """
@@ -36,6 +37,7 @@ def checkout(request):
         # 1. Create the Order shell
         order = Order.objects.create(
             customer=request.user,
+            menu_week=active_week,
             status='PENDING' # Default status
         )
         
@@ -78,6 +80,16 @@ def profile(request):
     """
     orders = Order.objects.filter(customer=request.user).order_by('-created_at')
     return render(request, 'store/profile.html', {'orders': orders})
+
+
+@staff_member_required
+def customer_order_history(request, customer_id):
+    customer = get_object_or_404(User, id=customer_id, is_chef=False)
+    orders = Order.objects.filter(customer=customer).order_by('-created_at')
+    return render(request, 'store/customer_orders.html', {
+        'customer': customer,
+        'orders': orders,
+    })
 
 @staff_member_required
 def batch_fulfillment_report(request):

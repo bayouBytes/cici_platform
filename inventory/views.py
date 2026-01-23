@@ -40,11 +40,21 @@ def chef_dashboard(request):
         if current_week
         else OrderItem.objects.none()
     )
+    order_totals = {
+        "total_price": Money(0, 'USD'),
+        "total_cost": Money(0, 'USD'),
+        "total_profit": Money(0, 'USD'),
+    }
+    for item in order_items:
+        order_totals["total_price"] += item.line_price
+        order_totals["total_cost"] += item.line_cost
+        order_totals["total_profit"] += item.line_profit
     context = {
         'ingredients': ingredients,
         'recipes': Recipe.objects.all(),
         'menu_items': menu_items,
         'order_items': order_items,
+        'order_totals': order_totals,
         'active_week': active_week,
         'current_week': current_week,
         'archived_weeks': archived_weeks,
